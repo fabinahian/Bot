@@ -23,6 +23,8 @@ COMMANDS = [
     "/balance: Show your current balance",
     "/history N: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
     "/setname name: Set what the bot will call you",
+    "/editamount txId correct_amount: Change the amount for txId",
+    "/edititem txId correct_item: Change the item for txId",
     "/help: Show this message"
 ]
 
@@ -196,6 +198,70 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except (IndexError, ValueError):
         handle_error_command(update, context)
 
+
+async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        tx_id, bill = context.args[0], float(context.args[1])                
+        # print(tx_id, bill)
+        user_id = update.message.from_user.id
+    
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+
+        cursor.execute("select amount, transaction_type from transactions where tx_id = ?", (tx_id,))
+        # Fetch all rows
+        rows = cursor.fetchall()
+        # Get the column names
+        columns = [description[0] for description in cursor.description]
+
+        # Convert rows to a list of dictionaries
+        table_data = [dict(zip(columns, row)) for row in rows]
+        
+        old_amount = table_data[0]["amount"]
+        item = table_data[0]["transaction_type"]
+        
+        if item == "pay":
+            diff = old_amount - bill
+        else:
+            diff = bill - old_amount
+        
+        cursor.execute("UPDATE transactions SET amount = ? where tx_id = ?", (bill, tx_id))
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (diff, user_id))
+        cursor.execute("select balance from users where user_id = ?", (user_id,))
+        bl = cursor.fetchone()[0]
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. Now your balance is {} Tk.".format(name, bl))
+        
+    except (IndexError, ValueError):
+        handle_error_command(update, context)
+
+async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        tx_id, item = context.args[0], ' '.join(context.args[1:])             
+        print(tx_id, item)
+        user_id = update.message.from_user.id
+    
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute("UPDATE transactions SET item = ? where tx_id = ?", (item, tx_id))
+
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+        
+        conn.commit()
+        conn.close()
+        
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. That day you had {}".format(name, item))
+        
+    except (IndexError, ValueError):
+        handle_error_command(update, context)
+        
 # Define the /balance command
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
@@ -284,6 +350,8 @@ def main():
     pay_handler = CommandHandler('pay', pay)
     history_handler = CommandHandler('history', history)
     addfund_handler = CommandHandler('addfund', addfund)
+    editamount_handler = CommandHandler('editamount', editamount)
+    edititem_handler = CommandHandler('edititem', edititem)
     help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
@@ -292,6 +360,8 @@ def main():
     application.add_handler(balance_handler)
     application.add_handler(history_handler)
     application.add_handler(addfund_handler)
+    application.add_handler(editamount_handler)
+    application.add_handler(edititem_handler)
     application.add_handler(help_handler)
     
     application.run_polling()
