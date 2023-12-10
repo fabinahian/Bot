@@ -34,9 +34,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    name = update.message.from_user.last_name
+    name = update.message.from_user.first_name
     if name is None:
-        name = update.message.from_user.first_name
+        name = update.message.from_user.last_name
     if name is None:
         name = update.message.from_user.username
     
