@@ -249,7 +249,7 @@ async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
-        cursor.execute("UPDATE transactions SET item = ? where tx_id = ?", (item, tx_id))
+        cursor.execute("UPDATE transactions SET item = ? where tx_id like ?", (item, f'{tx_id}%'))
 
         cursor.execute("select username from users where user_id = ?", (user_id,))
         name = cursor.fetchone()[0]
