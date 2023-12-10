@@ -208,7 +208,7 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
 
-        cursor.execute("select amount, transaction_type from transactions where tx_id = ?", (tx_id,))
+        cursor.execute("select amount, transaction_type from transactions where tx_id like ?", (f'{tx_id}%',))
         # Fetch all rows
         rows = cursor.fetchall()
         # Get the column names
@@ -225,7 +225,7 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             diff = bill - old_amount
         
-        cursor.execute("UPDATE transactions SET amount = ? where tx_id = ?", (bill, tx_id))
+        cursor.execute("UPDATE transactions SET amount = ? where tx_id like ?", (bill, f'{tx_id}%'))
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (diff, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         bl = cursor.fetchone()[0]
