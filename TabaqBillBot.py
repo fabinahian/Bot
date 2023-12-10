@@ -5,6 +5,7 @@ import sqlite3
 import os
 import datetime
 import random
+import uuid
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
@@ -117,8 +118,11 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Update user's balance in the database
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
 
+        # Generate a unique transaction ID (TxID)
+        tx_id = str(uuid.uuid4())
+        
         # Insert a record in the transactions table
-        cursor.execute("INSERT INTO transactions (user_id, transaction_type, amount) VALUES (?, 'addfund', ?)", (user_id, amount))
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount) VALUES (?, ?, 'addfund', ?)", (user_id, tx_id, amount))
 
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         bl = cursor.fetchone()[0]
@@ -168,7 +172,9 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
-        cursor.execute("INSERT INTO transactions (user_id, transaction_type, item, amount) VALUES (?, 'pay', ?, ?)", (user_id, item, bill))
+        # Generate a unique transaction ID (TxID)
+        tx_id = str(uuid.uuid4())
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'pay', ?, ?)", (user_id, tx_id, item, bill))
         cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (bill, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         bl = cursor.fetchone()[0]
@@ -240,9 +246,9 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for row in table_data:
         if row["transaction_type"] == "pay":
-            text += "- On {}, you paid {} Tk. for {}\n".format(row["timestamp"], row["amount"], row["item"])
+            text += "- On {}, you paid {} Tk. for {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
         else:
-            text += "- On {}, you added {} Tk. to your fund\n".format(row["timestamp"], row["amount"])
+            text += "- On {}, you added {} Tk. to your fund. TxID: {}\n".format(row["timestamp"], row["amount"], row["tx_id"])
     
     cursor.execute("select balance from users where user_id = ?", (user_id,))
     bl = cursor.fetchone()[0]
@@ -291,4 +297,34 @@ def main():
     application.run_polling()
 
 if __name__ == "__main__":
+    # Connect to the SQLite database
+    conn = sqlite3.connect('Tabaq.db')
+    cursor = conn.cursor()
+
+    # Create tables if they don't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER UNIQUE NOT NULL,
+            username TEXT,
+            balance REAL DEFAULT 0.0
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            tx_id TEXT UNIQUE NOT NULL,
+            transaction_type TEXT NOT NULL,
+            item TEXT,
+            amount REAL NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (user_id)
+        )
+    ''')
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
     main()
