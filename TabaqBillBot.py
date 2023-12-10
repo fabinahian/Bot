@@ -119,7 +119,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
 
         # Generate a unique transaction ID (TxID)
-        tx_id = str(uuid.uuid4())
+        tx_id = str(uuid.uuid4())[:8]
         
         # Insert a record in the transactions table
         cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount) VALUES (?, ?, 'addfund', ?)", (user_id, tx_id, amount))
@@ -173,7 +173,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor = conn.cursor()
         
         # Generate a unique transaction ID (TxID)
-        tx_id = str(uuid.uuid4())
+        tx_id = str(uuid.uuid4())[:8]
         cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'pay', ?, ?)", (user_id, tx_id, item, bill))
         cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (bill, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
