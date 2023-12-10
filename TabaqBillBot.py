@@ -4,6 +4,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import sqlite3
 import os
 import datetime
+import random
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
@@ -20,6 +21,7 @@ COMMANDS = [
     "/pay item payment: Make a payment and subtract the bill from your balance",
     "/balance: Show your current balance",
     "/history N: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
+    "/setname name: Set what the bot will call you",
     "/help: Show this message"
 ]
 
@@ -29,20 +31,75 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = update.message.from_user.id
     username = update.message.from_user.username
-    first_name = update.message.from_user.first_name
-    last_name = update.message.from_user.last_name
+    name = update.message.from_user.last_name
+    if name is None:
+        name = update.message.from_user.first_name
+    if name is None:
+        name = update.message.from_user.username
     
     cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
     existing_value = cursor.fetchone()
     
     if existing_value:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello again {}! You're already a member, so no need to \"start\"".format(last_name))
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello again {}! You're already a member, so no need to \"start\"".format(name))
     else:
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome {}! You're now a member".format(last_name))
-        cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, username))
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome {}! You're now a member".format(name))
+        cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, name))
         conn.commit()
         
     conn.close()
+    
+async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    user_id = update.message.from_user.id
+    # print(context.args)
+    new_name = ' '.join(context.args)
+    print(new_name)
+    
+    cursor.execute("select username from users where user_id = ?", (user_id,))
+    old_name = cursor.fetchone()[0]
+    
+    if len(context.args) == 0:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh come on {}! You gotta give me a name.".format(old_name))
+        conn.commit()
+        conn.close()
+        return
+    
+    cursor.execute("UPDATE users SET username = ? WHERE user_id = ?", (new_name, user_id))
+    
+    conn.commit()
+    conn.close()
+    
+    text = ""
+    if "heisenberg" in new_name.lower():
+        text = "You: Say my name\n\nMe: {}\n\nYou: You're Goddamn right".format(new_name)
+    elif "john cena" in new_name.lower():
+        text = "Oh no! I can't see you"
+    elif "john" in new_name.lower():
+        text = "You know nothing John Snow"
+    elif "queen" in new_name.lower():
+        toss = random.randint(0,1)
+        if toss == 0:
+            text = "Hello, Your Majesty. I am delighted to meet you"
+        elif toss == 1:
+            text = "Mamaa Oooooo"
+    elif "princess consuela banana hammock" in new_name.lower():
+        text = "Okay so now I'm gonna call myself Crap Bag"
+    else:
+        toss = random.randint(0,3)
+        if toss == 0:
+            text = "Me: Your Honour, my client has decided to change their name to {}, because it's a cool name.\n\nJudge: Ah yes, it is a cool name. Motion granted!".format(new_name)
+        elif toss == 1:
+            text = "You're also gonna need a new passport {}. Don't worry, I'll arrange that too".format(new_name)
+        elif toss == 2:
+            text = "Hello {}!".format(new_name)
+        elif toss == 3:
+            text = "I'm so glad you changed your name {}, previous one sucked".format(new_name)
+            
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    
 
 # Define the /addfund command
 async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -52,10 +109,10 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Update user's balance
         user_id = update.message.from_user.id
-        last_name = update.message.from_user.last_name
         
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
+        
         
         # Update user's balance in the database
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
@@ -65,13 +122,17 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         bl = cursor.fetchone()[0]
+        
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+        
         conn.commit()
         conn.close()
 
         if amount > 2000:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the cafe! Here's your balance rich guy: {} Tk".format(last_name, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the cafe! Here's your balance rich guy: {} Tk".format(name, bl))
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! You've added {} Tk to your account. You're current balance is {} Tk.".format(last_name, amount, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! You've added {} Tk to your account. You're current balance is {} Tk.".format(name, amount, bl))
 
     except (IndexError, ValueError):
         handle_error_command(update, context)
@@ -90,10 +151,20 @@ def getItemAndBill(args:list):
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         item, bill = getItemAndBill(context.args)
-        print(item, bill)
+        none_item = False
+        if len(item) == 0:
+            none_item = True
+            toss = random.randint(0, 2)
+            if toss == 0:
+                item = "God knows what"
+            elif toss == 1:
+                item = "Something illegal"
+            elif toss == 2:
+                item = "Something embarrassing"
+                
+        # print(item, bill)
         user_id = update.message.from_user.id
-        last_name = update.message.from_user.last_name
-        
+    
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
@@ -101,16 +172,20 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (bill, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         bl = cursor.fetchone()[0]
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
         
         conn.commit()
         conn.close()
         
-        if bl <= 0:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You ran out of fund! Your current balance is {} Tk.".format(last_name, bill, item, bl))
+        if none_item:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="So not gonna tell me what you had, huh? Okay {}, here's your balance: {} Tk.".format(name, bl))
+        elif bl <= 0:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You ran out of fund! Your current balance is {} Tk.".format(name, bill, item, bl))
         elif bl < 50:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You're almost running out of fund! Your current balance is {} Tk.".format(last_name, bill, item, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You're almost running out of fund! Your current balance is {} Tk.".format(name, bill, item, bl))
         else:        
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. Your current balance is {} Tk.".format(last_name, bill, item, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. Your current balance is {} Tk.".format(name, bill, item, bl))
         
     except (IndexError, ValueError):
         handle_error_command(update, context)
@@ -118,7 +193,6 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define the /balance command
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    last_name = update.message.from_user.last_name
     
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
@@ -126,19 +200,24 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute("select balance from users where user_id = ?", (user_id,))
     bl = cursor.fetchone()[0]
     
+    cursor.execute("select username from users where user_id = ?", (user_id,))
+    name = cursor.fetchone()[0]
+    
     conn.commit()
     conn.close()
     
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You're current balance is {} Tk. Have a great day!".format(last_name, bl))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You're current balance is {} Tk. Have a great day!".format(name, bl))
 
 # Define the /history command
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    last_name = update.message.from_user.last_name
     
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
+    cursor.execute("select username from users where user_id = ?", (user_id,))
+    name = cursor.fetchone()[0]
+        
     if len(context.args) == 1 and context.args[0].isnumeric():
         cursor.execute("select * from transactions where user_id = ? order by timestamp desc limit ?", (user_id, int(context.args[0])))
     elif len(context.args) == 0:
@@ -146,7 +225,7 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         conn.commit()
         conn.close()
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! {} made an error in command".format(last_name))
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! {} made an error in command".format(name))
         return
     
     # Fetch all rows
@@ -157,7 +236,7 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Convert rows to a list of dictionaries
     table_data = [dict(zip(columns, row)) for row in rows]
     
-    text = "Good day {}! Here's your transaction history:\n\n".format(last_name)
+    text = "Good day {}! Here's your transaction history:\n\n".format(name)
     
     for row in table_data:
         if row["transaction_type"] == "pay":
@@ -177,8 +256,12 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Define a function to handle incoming messages
 async def handle_error_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    last_name = update.message.from_user.last_name
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! That's not a valid command {}".format(last_name))
+    user_id = update.message.from_user.id
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    cursor.execute("select username from users where user_id = ?", (user_id,))
+    name = cursor.fetchone()[0]
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! That's not a valid command {}".format(name))
 
 # Define the /help command
 async def help_command(update, context):
@@ -190,6 +273,7 @@ def main():
     application = ApplicationBuilder().token(token).build()
     
     start_handler = CommandHandler("start", start)
+    setname_handler = CommandHandler("setname", setname)
     balance_handler = CommandHandler('balance', balance)
     pay_handler = CommandHandler('pay', pay)
     history_handler = CommandHandler('history', history)
@@ -197,6 +281,7 @@ def main():
     help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
+    application.add_handler(setname_handler)
     application.add_handler(pay_handler)
     application.add_handler(balance_handler)
     application.add_handler(history_handler)
