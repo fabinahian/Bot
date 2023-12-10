@@ -33,6 +33,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = conn.cursor()
     
     user_id = update.message.from_user.id
+    user_group = update.message.chat.title
     username = update.message.from_user.username
     name = update.message.from_user.first_name
     if name is None:
@@ -47,7 +48,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello again {}! You're already a member, so no need to \"start\"".format(name))
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome {}! You're now a member".format(name))
-        cursor.execute("INSERT INTO users (user_id, username) VALUES (?, ?)", (user_id, name))
+        cursor.execute("INSERT INTO users (user_id, username, usergroup) VALUES (?, ?, ?)", (user_id, name, user_group))
         conn.commit()
         
     conn.close()
@@ -377,6 +378,7 @@ if __name__ == "__main__":
             id INTEGER PRIMARY KEY,
             user_id INTEGER UNIQUE NOT NULL,
             username TEXT,
+            usergroup TEXT,
             balance REAL DEFAULT 0.0
         )
     ''')
