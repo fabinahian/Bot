@@ -28,6 +28,24 @@ COMMANDS = [
     "/help: Show this message"
 ]
 
+def get_time_category(current_time:datetime.datetime)->str:
+
+    current_time = current_time.time()
+    if current_time < datetime.datetime.strptime("04:00", "%H:%M").time():
+        return "Late Night"
+    elif current_time < datetime.datetime.strptime("09:00", "%H:%M").time():
+        return "Early Morning"
+    elif current_time < datetime.datetime.strptime("12:00", "%H:%M").time():
+        return "Morning"
+    elif current_time < datetime.datetime.strptime("13:00", "%H:%M").time():
+        return "Noon"
+    elif current_time < datetime.datetime.strptime("17:00", "%H:%M").time():
+        return "Afternoon"
+    elif current_time < datetime.datetime.strptime("20:00", "%H:%M").time():
+        return "Evening"
+    else:
+        return "Night"
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
@@ -82,7 +100,7 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif "john cena" in new_name.lower():
         text = "Oh no! I can't see you"
     elif "john" in new_name.lower():
-        text = "You know nothing John Snow"
+        text = "You know nothing {}".format(new_name)
     elif "queen" in new_name.lower():
         toss = random.randint(0,1)
         if toss == 0:
@@ -92,7 +110,7 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif "princess consuela banana hammock" in new_name.lower():
         text = "Okay so now I'm gonna call myself Crap Bag"
     else:
-        toss = random.randint(0,3)
+        toss = random.randint(0,4)
         if toss == 0:
             text = "Me: Your Honour, my client has decided to change their name to {}, because it's a cool name.\n\nJudge: Ah yes, it is a cool name. Motion granted!".format(new_name)
         elif toss == 1:
@@ -101,6 +119,8 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "Hello {}!".format(new_name)
         elif toss == 3:
             text = "I'm so glad you changed your name {}, previous one sucked".format(new_name)
+        elif toss == 4:
+            text = "Your secret is safe with me detective {}. No one will know your real name".format(new_name)
             
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     
@@ -113,6 +133,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Update user's balance
         user_id = update.message.from_user.id
+        time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
         
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
@@ -157,6 +178,7 @@ def getItemAndBill(args:list):
 # Define the /pay command
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
         item, bill = getItemAndBill(context.args)
         none_item = False
         if len(item) == 0:
@@ -189,13 +211,44 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if none_item:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="So not gonna tell me what you had, huh? Okay {}, here's your balance: {} Tk.".format(name, bl))
-        elif bl <= 0:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You ran out of fund! Your current balance is {} Tk.".format(name, bill, item, bl))
-        elif bl < 50:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. You're almost running out of fund! Your current balance is {} Tk.".format(name, bill, item, bl))
-        else:        
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You paid {} Tk. for {}. Your current balance is {} Tk.".format(name, bill, item, bl))
-        
+        elif bl == 0:
+            toss = random.randint(0, 2)
+            if toss == 0:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="Who invented the number 0?\n\n{}'s bank balance".format(name))
+            elif toss == 1:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="You're almost a billionair {}! You're only a billion dollar short".format(name))
+            elif toss == 2:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="You ran out of money {}!. You're balance is 0 Tk.".format(name))
+        elif bl < 0:
+            toss = random.randint(0, 4)
+            if toss == 0:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="Damm {}! You're like reverse Bruce Wayne.\n\nNo, you're not Batman, you're poor. Here's your balance {} Tk.".format(name, bl))
+            elif toss == 1:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="{} made you broke {}. Here's your balance: {} Tk.".format(item, name, bl))
+            elif toss == 2:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh you poor little {}! You're now in {} Tk. debt.".format(name, -1*bl))
+            elif toss == 3:
+                await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                               text="I know {}, {} is worth going broke for. Here's your balance though: {} Tk.".format(name, item))
+            elif toss == 4:
+                await context.bot.send_message(chat_id=update.effective_chat.id,
+                                               text="Umm, do you need help cleaning those dishes? You're now in {} Tk. debt {}".format(-bl, name))
+        else:   
+            toss = random.randint(0, 2)
+            time_type = get_time_category(time)
+            if toss == 0:
+                time_type.lower()
+                await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                               text="Nothing better than a{} {} in the {}. Here's your balance {}: {} Tk.".format('n' if item[0].lower() in ['a', 'e', 'i', 'o', 'u'] else '', item, time_type, name, bl))
+            elif toss == 1:
+                if time_type == "Early Morning" or time_type == "Noon":
+                    time_type = "Day"
+                    
+                await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                               text="Good {} {}! You had a{} {}. Here's your balance: {} Tk.".format(time_type, name, 'n' if item[0].lower() in ['a', 'e', 'i', 'o', 'u'] else '', item, bl))
+            elif toss == 2:
+                await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                               text="No one deserves {} more than you {}. You've earned it! You still have {} Tk. in your balance".format(item, name, bl))
     except (IndexError, ValueError):
         handle_error_command(update, context)
 
@@ -266,7 +319,7 @@ async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define the /balance command
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    
+    time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
