@@ -9,6 +9,7 @@ import uuid
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
+only_admin_add_fund = True
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -128,9 +129,6 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define the /addfund command
 async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Extract the amount from the command
-        amount = float(context.args[0])
-
         # Update user's balance
         user_id = update.message.from_user.id
         time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
@@ -138,7 +136,19 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
-        
+        cursor.execute("select admin from users where user_id = ?", (user_id,))
+        admin_status = cursor.fetchone()[0]
+        if only_admin_add_fund and admin_status == False:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(name))
+            return
+        else:
+            user_name, amount = getStringAndNumber(context.args)
+            cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
+            member = cursor.fetchone()
+            if  member is None:
+                await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, couldn't find a member named {}".format(user_name))
+                return
+            user_id = member[0]
         # Update user's balance in the database
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
 
@@ -158,15 +168,15 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.close()
 
         if amount > 2000:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the cafe! Here's your balance rich guy: {} Tk".format(name, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the store! Here's your balance rich guy: {} Tk".format(name, bl))
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! You've added {} Tk to your account. You're current balance is {} Tk.".format(name, amount, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! Admin has added {} Tk to your account. You're current balance is {} Tk.".format(name, amount, bl))
 
     except (IndexError, ValueError):
         handle_error_command(update, context)
 
 
-def getItemAndBill(args:list):
+def getStringAndNumber(args:list):
     item = ""
     for x in args:
         if x[0] >= '0' and x[0] <= '9':
@@ -179,7 +189,7 @@ def getItemAndBill(args:list):
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
-        item, bill = getItemAndBill(context.args)
+        item, bill = getStringAndNumber(context.args)
         none_item = False
         if len(item) == 0:
             none_item = True
