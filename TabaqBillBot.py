@@ -141,7 +141,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if only_admin_add_fund and admin_status == False:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(name))
             return
-        else:
+        elif only_admin_add_fund:
             user_name, amount = getStringAndNumber(context.args)
             cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
             member = cursor.fetchone()
