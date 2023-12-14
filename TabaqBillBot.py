@@ -170,7 +170,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if amount > 2000:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the store! Here's your balance rich guy: {} Tk".format(name, bl))
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! Admin has added {} Tk to your account. You're current balance is {} Tk.".format(name, amount, bl))
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! {} Tk was added to your account. You're current balance is {} Tk.".format(name, amount, bl))
 
     except (IndexError, ValueError):
         handle_error_command(update, context)
