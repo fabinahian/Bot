@@ -26,6 +26,8 @@ COMMANDS = [
     "/setname name: Set what the bot will call you",
     "/editamount txId correct_amount: Change the amount for txId",
     "/edititem txId correct_item: Change the item for txId",
+    "/showmembers: List all the members",
+    "/allbalance: List balance for all members"
     "/help: Show this message"
 ]
 
@@ -406,6 +408,65 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    
+async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_group = update.message.chat.title
+    
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    cursor.execute("select username, admin from users where usergroup = ?", (user_group,))    
+    # Fetch all rows
+    rows = cursor.fetchall()
+    # Get the column names
+    columns = [description[0] for description in cursor.description]
+
+    # Convert rows to a list of dictionaries
+    table_data = [dict(zip(columns, row)) for row in rows]
+    
+    text = ""
+    count = 1
+    for row in table_data:
+        text += "{}. {}".format(count, row["username"])
+        count += 1
+        if row["admin"] == 1:
+            text += " (Admin)"
+        text += "\n"
+    
+    conn.commit()
+    conn.close()
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    
+async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_group = update.message.chat.title
+    
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    cursor.execute("select username, admin, balance from users where usergroup = ?", (user_group,))    
+    # Fetch all rows
+    rows = cursor.fetchall()
+    # Get the column names
+    columns = [description[0] for description in cursor.description]
+
+    # Convert rows to a list of dictionaries
+    table_data = [dict(zip(columns, row)) for row in rows]
+    
+    text = ""
+    count = 1
+    for row in table_data:
+        text += "{}. {}".format(count, row["username"])
+        count += 1
+        if row["admin"] == 1:
+            text += " (Admin)"
+        text += ":{} Tk.".format(row["balance"])
+        text += "\n"
+    
+    conn.commit()
+    conn.close()
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 # Define a function to handle incoming messages
 async def handle_error_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -433,6 +494,8 @@ def main():
     addfund_handler = CommandHandler('addfund', addfund)
     editamount_handler = CommandHandler('editamount', editamount)
     edititem_handler = CommandHandler('edititem', edititem)
+    showmembers_handler = CommandHandler('showmembers', showmembers)
+    allbalance_handler = CommandHandler('allbalance', allbalance)
     help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
@@ -443,6 +506,8 @@ def main():
     application.add_handler(addfund_handler)
     application.add_handler(editamount_handler)
     application.add_handler(edititem_handler)
+    application.add_handler(showmembers_handler)
+    application.add_handler(allbalance_handler)
     application.add_handler(help_handler)
     
     application.run_polling()
