@@ -149,6 +149,8 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         elif only_admin_add_fund:
             user_name, amount = getStringAndNumber(context.args)
+            if len(user_name) == 0:
+                user_name = name
             cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
             member = cursor.fetchone()
             if  member is None:
@@ -381,18 +383,18 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "Oh I wish I could give you some money, {}. Your balance is {} Tk.".format(name, bl)
         elif toss == 1:
             text = "Ugh! I hate it when broke people ask me to check balance. Here's your balance {}: {} Tk.".format(name, bl)
-    elif bl/1000 > 0:
-        toss = random.randint(0,1)
-        if toss == 0:
-            text = "Good day {}! Here's your balance rich guy: {} Tk.".format(name, bl)
-        elif toss == 1:
-            text = "Buy whatever you want {}. You have {} Tk. in your balance".format(name, bl)
     elif bl > 0 and bl < 100:
         toss = random.randint(0,1)
         if toss == 0:
             text = "You can't even afford a coffee {}. Here's your balance: {} Tk.".format(name, bl)
         elif toss == 1:
-            text = "You should add fund to your balance {}. You only have {} Tk. in your balance".format(name, bl)
+            text = "You should add fund, {}. You only have {} Tk. in your balance".format(name, bl)
+    elif bl > 1000:
+        toss = random.randint(0,1)
+        if toss == 0:
+            text = "Good day {}! Here's your balance rich guy: {} Tk.".format(name, bl)
+        elif toss == 1:
+            text = "Buy whatever you want {}. You have {} Tk. in your balance".format(name, bl)
     else:
         text = "Good day {}! Here's your balance: {} Tk.".format(name, bl)
             
