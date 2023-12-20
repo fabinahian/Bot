@@ -49,11 +49,43 @@ def get_time_category(current_time:datetime.datetime)->str:
     else:
         return "Night"
 
+
+def getUserInfo(user_id = None, user_name = None, tx_id = None):
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    if user_id is not None:
+        cursor.execute("select user_id, username, admin, usergroup, balance from users where user_id = ?", (user_id,))    
+
+    elif user_name is not None:
+        cursor.execute("select user_id, username, admin, usergroup, balance from users where username like ?", (f'{user_name}%',))
+    
+    elif tx_id is not None:
+        cursor.execute("select user_id, username, admin, usergroup, balance from users where username like ?", (f'{tx_id}%',))
+    
+    # Fetch all rows
+    rows = cursor.fetchall()
+    # Get the column names
+    columns = [description[0] for description in cursor.description]
+    # Convert rows to a list of dictionaries
+    user_info = [dict(zip(columns, row)) for row in rows]
+    
+    conn.commit()
+    conn.close()
+    
+    return user_info
+    
+        
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
     user_id = update.message.from_user.id
+    
+    user_info = getUserInfo(user_id=user_id)
+    print(user_info)
     user_group = update.message.chat.title
     username = update.message.from_user.username
     name = update.message.from_user.first_name
@@ -484,7 +516,7 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
-    cursor.execute("select username, admin, balance from users where usergroup = ?", (user_group,))    
+    cursor.execute("select username, admin, balance from users where usergroup = ? order by balance desc", (user_group,))    
     # Fetch all rows
     rows = cursor.fetchall()
     # Get the column names
