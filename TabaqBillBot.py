@@ -140,6 +140,10 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         cursor.execute("select admin from users where user_id = ?", (user_id,))
         admin_status = cursor.fetchone()[0]
+        
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+    
         if only_admin_add_fund and admin_status == False:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(name))
             return
@@ -358,10 +362,44 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute("select username from users where user_id = ?", (user_id,))
     name = cursor.fetchone()[0]
     
+    text = ""
+    
+    if bl == 0:
+        toss = random.randint(0,3)
+        if toss == 0:
+            text = "Your balance isn't hard to remember {}. It's 0 Tk.".format(name)
+        elif toss == 1:
+            text = "Good day Aryabhatta! Your balance is your favourite number: 0"
+        elif toss == 2:
+            text = "Oh you poor little {}. Your balance is 0 Tk.".format(name)
+        elif toss == 3:
+            text = "If you double your balance, it stays the same. Guess what your balance is {}".format(name)
+            
+    elif bl < 0:
+        toss = random.randint(0,1)
+        if toss == 0:
+            text = "Oh I wish I could give you some money, {}. Your balance is {} Tk.".format(name, bl)
+        elif toss == 1:
+            text = "Ugh! I hate it when broke people ask me to check balance. Here's your balance {}: {} Tk.".format(name, bl)
+    elif bl/1000 > 0:
+        toss = random.randint(0,1)
+        if toss == 0:
+            text = "Good day {}! Here's your balance rich guy: {} Tk.".format(name, bl)
+        elif toss == 1:
+            text = "Buy whatever you want {}. You have {} Tk. in your balance".format(name, bl)
+    elif bl > 0 and bl < 100:
+        toss = random.randint(0,1)
+        if toss == 0:
+            text = "You can't even afford a coffee {}. Here's your balance: {} Tk.".format(name, bl)
+        elif toss == 1:
+            text = "You should add fund to your balance {}. You only have {} Tk. in your balance".format(name, bl)
+    else:
+        text = "Good day {}! Here's your balance: {} Tk.".format(name, bl)
+            
     conn.commit()
     conn.close()
     
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Hey {}! You're current balance is {} Tk. Have a great day!".format(name, bl))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 # Define the /history command
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
