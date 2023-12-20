@@ -272,7 +272,23 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
 
-        cursor.execute("select amount, transaction_type from transactions where tx_id like ?", (f'{tx_id}%',))
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+        cursor.execute("select admin from users where user_id = ?", (user_id,))
+        admin_status = cursor.fetchone()[0]
+        if only_admin_add_fund and admin_status == False:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't edit amount {}. You're not an admin".format(name))
+            return
+        # elif only_admin_add_fund:
+        #     user_name, amount = getStringAndNumber(context.args)
+        #     cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
+        #     member = cursor.fetchone()
+        #     if  member is None:
+        #         await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, couldn't find a member named {}".format(user_name))
+        #         return
+        #     user_id = member[0]
+            
+        cursor.execute("select user_id, amount, transaction_type from transactions where tx_id like ?", (f'{tx_id}%',))
         # Fetch all rows
         rows = cursor.fetchall()
         # Get the column names
@@ -283,6 +299,7 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         old_amount = table_data[0]["amount"]
         item = table_data[0]["transaction_type"]
+        user_id = table_data[0]["user_id"]
         
         if item == "pay":
             diff = old_amount - bill
