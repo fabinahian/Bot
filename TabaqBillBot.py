@@ -523,11 +523,15 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Convert rows to a list of dictionaries
     table_data = [dict(zip(columns, row)) for row in rows]
-    
+    total = len(rows)
     text = ""
     count = 1
     for row in table_data:
         text += "{}. {}".format(count, row["username"])
+        if count == 1:
+            text += " 👑 "
+        if count == total:
+            text += " 😞 "
         count += 1
         if row["admin"] == 1:
             text += " (Admin)"
