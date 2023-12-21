@@ -6,6 +6,7 @@ import os
 import datetime
 import random
 import uuid
+import BotResponse
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
@@ -70,6 +71,8 @@ def getUserInfo(user_id = None, user_name = None, tx_id = None):
     # Convert rows to a list of dictionaries
     user_info = [dict(zip(columns, row)) for row in rows]
     
+    user_info = user_info[0]
+    
     conn.commit()
     conn.close()
     
@@ -84,8 +87,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     user_id = update.message.from_user.id
     
-    user_info = getUserInfo(user_id=user_id)
-    print(user_info)
     user_group = update.message.chat.title
     username = update.message.from_user.username
     name = update.message.from_user.first_name
@@ -113,7 +114,6 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     # print(context.args)
     new_name = ' '.join(context.args)
-    print(new_name)
     
     cursor.execute("select username from users where user_id = ?", (user_id,))
     old_name = cursor.fetchone()[0]
@@ -163,54 +163,66 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define the /addfund command
 async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        # Update user's balance
         user_id = update.message.from_user.id
-        time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+        user_info = getUserInfo(user_id=user_id)
         
+        if user_info["admin"] == False:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(user_info["username"]))
+            return
+        else:
+            member_name, amount = getStringAndNumber(context.args)
+            if len(member_name) == 0:
+                member_name = user_info["username"]
+        
+        member_info = getUserInfo(user_name=member_name) 
+               
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
-        cursor.execute("select admin from users where user_id = ?", (user_id,))
-        admin_status = cursor.fetchone()[0]
-        
-        cursor.execute("select username from users where user_id = ?", (user_id,))
-        name = cursor.fetchone()[0]
-    
-        if only_admin_add_fund and admin_status == False:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(name))
-            return
-        elif only_admin_add_fund:
-            user_name, amount = getStringAndNumber(context.args)
-            if len(user_name) == 0:
-                user_name = name
-            cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
-            member = cursor.fetchone()
-            if  member is None:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, couldn't find a member named {}".format(user_name))
-                return
-            user_id = member[0]
-        # Update user's balance in the database
-        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, user_id))
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, member_info["user_id"]))
 
         # Generate a unique transaction ID (TxID)
         tx_id = str(uuid.uuid4())[:8]
         
         # Insert a record in the transactions table
-        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount) VALUES (?, ?, 'addfund', ?)", (user_id, tx_id, amount))
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount) VALUES (?, ?, 'addfund', ?)", (member_info["user_id"], tx_id, amount))
 
-        cursor.execute("select balance from users where user_id = ?", (user_id,))
-        bl = cursor.fetchone()[0]
-        
-        cursor.execute("select username from users where user_id = ?", (user_id,))
-        name = cursor.fetchone()[0]
+        cursor.execute("select balance from users where user_id = ?", (member_info["user_id"],))
+        member_info["balance"] = cursor.fetchone()[0]
         
         conn.commit()
         conn.close()
 
-        if amount > 2000:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh my god {}! You almost bought the store! Here's your balance rich guy: {} Tk".format(name, bl))
-        else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Congratulations {}! {} Tk was added to your account. You're current balance is {} Tk.".format(name, amount, bl))
+        if member_info["balance"] >= 3000:
+            text = random.choice(BotResponse.addfund["3k"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = member_info["username"], 
+                                                            balance = member_info["balance"],
+                                                            amount = amount))
+        elif member_info["balance"] >= 2000:
+            text = random.choice(BotResponse.addfund["2k"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = member_info["username"],
+                                                            balance = member_info["balance"],
+                                                            amount = amount))
+        elif member_info["balance"] >= 1000:
+            text = random.choice(BotResponse.addfund["1k"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = member_info["username"],
+                                                            balance = member_info["balance"],
+                                                            amount = amount))
+        elif member_info["balance"] >= 500:
+            text = random.choice(BotResponse.addfund["500"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = member_info["username"],
+                                                            balance = member_info["balance"],
+                                                            amount = amount))
+        elif member_info["balance"] < 500:
+            text = random.choice(BotResponse.addfund["<500"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = member_info["username"],
+                                                            balance = member_info["balance"],
+                                                            amount = amount))
 
     except (IndexError, ValueError):
         handle_error_command(update, context)
@@ -243,7 +255,8 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
         # print(item, bill)
         user_id = update.message.from_user.id
-    
+        user_info = getUserInfo(user_id=user_id)
+        
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
@@ -252,53 +265,58 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'pay', ?, ?)", (user_id, tx_id, item, bill))
         cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (bill, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
-        bl = cursor.fetchone()[0]
-        cursor.execute("select username from users where user_id = ?", (user_id,))
-        name = cursor.fetchone()[0]
+        user_info["balance"] = cursor.fetchone()[0]
+        user_info["item"] = item
+        user_info["bill"] = bill
+        daytype = get_time_category(time)
         
         conn.commit()
         conn.close()
         
         if none_item:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="So not gonna tell me what you had, huh? Okay {}, here's your balance: {} Tk.".format(name, bl))
-        elif bl == 0:
-            toss = random.randint(0, 2)
-            if toss == 0:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="Who invented the number 0?\n\n{}'s bank balance".format(name))
-            elif toss == 1:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="You're almost a billionair {}! You're only a billion dollar short".format(name))
-            elif toss == 2:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="You ran out of money {}!. You're balance is 0 Tk.".format(name))
-        elif bl < 0:
-            toss = random.randint(0, 4)
-            if toss == 0:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="Damm {}! You're like reverse Bruce Wayne.\n\nNo, you're not Batman, you're poor. Here's your balance {} Tk.".format(name, bl))
-            elif toss == 1:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="{} made you broke {}. Here's your balance: {} Tk.".format(item, name, bl))
-            elif toss == 2:
-                await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh you poor little {}! You're now in {} Tk. debt.".format(name, -1*bl))
-            elif toss == 3:
-                await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                               text="I know {}, {} is worth going broke for. Here's your balance though: {} Tk.".format(name, item))
-            elif toss == 4:
-                await context.bot.send_message(chat_id=update.effective_chat.id,
-                                               text="Umm, do you need help cleaning those dishes? You're now in {} Tk. debt {}".format(-bl, name))
+            text = random.choice(BotResponse.pay["None"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = user_info["username"],
+                                                            balance = user_info["balance"],
+                                                            bill = user_info["bill"],
+                                                            item = user_info["item"]))
+        elif user_info["balance"] == 0:
+            text = random.choice(BotResponse.pay["0"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = user_info["username"],
+                                                            balance = user_info["balance"],
+                                                            bill = user_info["bill"],
+                                                            item = user_info["item"]))
+        elif user_info["balance"] < 0:
+            text = random.choice(BotResponse.pay["<0"])
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = user_info["username"],
+                                                            balance = user_info["balance"],
+                                                            bill = user_info["bill"],
+                                                            item = user_info["item"]))
+        elif daytype in ["Late Night", "Early Morning", "Night"]:   
+            text = random.choice(BotResponse.pay[">0day"])
+            
+            n = 'n' if user_info["item"].lower() in ['a', 'e', 'i', 'o', 'u'] else ''
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = user_info["username"],
+                                                            balance = user_info["balance"],
+                                                            bill = user_info["bill"],
+                                                            item = user_info["item"],
+                                                            daytype = daytype,
+                                                            n = n))
         else:   
-            toss = random.randint(0, 2)
-            time_type = get_time_category(time)
-            if toss == 0:
-                time_type.lower()
-                await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                               text="Nothing better than a{} {} in the {}. Here's your balance {}: {} Tk.".format('n' if item[0].lower() in ['a', 'e', 'i', 'o', 'u'] else '', item, time_type, name, bl))
-            elif toss == 1:
-                if time_type == "Early Morning" or time_type == "Noon":
-                    time_type = "Day"
-                    
-                await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                               text="Good {} {}! You had a{} {}. Here's your balance: {} Tk.".format(time_type, name, 'n' if item[0].lower() in ['a', 'e', 'i', 'o', 'u'] else '', item, bl))
-            elif toss == 2:
-                await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                               text="No one deserves {} more than you {}. You've earned it! You still have {} Tk. in your balance".format(item, name, bl))
+            text = random.choice(BotResponse.pay[">0"])
+            
+            n = 'n' if user_info["item"].lower() in ['a', 'e', 'i', 'o', 'u'] else ''
+            await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                           text=text.format(name = user_info["username"],
+                                                            balance = user_info["balance"],
+                                                            bill = user_info["bill"],
+                                                            item = user_info["item"],
+                                                            daytype = daytype,
+                                                            n = n))
+    
     except (IndexError, ValueError):
         handle_error_command(update, context)
 
@@ -319,14 +337,6 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if only_admin_add_fund and admin_status == False:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't edit amount {}. You're not an admin".format(name))
             return
-        # elif only_admin_add_fund:
-        #     user_name, amount = getStringAndNumber(context.args)
-        #     cursor.execute("select user_id from users where username like ?", (f'{user_name}%',))
-        #     member = cursor.fetchone()
-        #     if  member is None:
-        #         await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, couldn't find a member named {}".format(user_name))
-        #         return
-        #     user_id = member[0]
             
         cursor.execute("select user_id, amount, transaction_type from transactions where tx_id like ?", (f'{tx_id}%',))
         # Fetch all rows
@@ -359,7 +369,7 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. Now your balance is {} Tk.".format(name, bl))
         
     except (IndexError, ValueError):
-        handle_error_command(update, context)
+        await handle_error_command(update, context)
 
 async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -381,59 +391,48 @@ async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. That day you had {}".format(name, item))
         
     except (IndexError, ValueError):
-        handle_error_command(update, context)
+        await handle_error_command(update, context)
         
 # Define the /balance command
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
+    user_info = getUserInfo(user_id=user_id)
     
-    cursor.execute("select balance from users where user_id = ?", (user_id,))
-    bl = cursor.fetchone()[0]
+    if user_info["balance"] >= 3000:
+        text = random.choice(BotResponse.balance["3k"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] >=2000:
+        text = random.choice(BotResponse.balance["2k"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] >= 1000:
+        text = random.choice(BotResponse.balance["1k"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] >= 500:
+        text = random.choice(BotResponse.balance["500"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] >= 100:
+        text = random.choice(BotResponse.balance["100"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] > 0:
+        text = random.choice(BotResponse.balance[">0"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] == 0:
+        text = random.choice(BotResponse.balance["0"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
+    elif user_info["balance"] < 0:
+        text = random.choice(BotResponse.balance["<0"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+                                                                                          balance = user_info["balance"]))
     
-    cursor.execute("select username from users where user_id = ?", (user_id,))
-    name = cursor.fetchone()[0]
-    
-    text = ""
-    
-    if bl == 0:
-        toss = random.randint(0,3)
-        if toss == 0:
-            text = "Your balance isn't hard to remember {}. It's 0 Tk.".format(name)
-        elif toss == 1:
-            text = "Good day Aryabhatta! Your balance is your favourite number: 0"
-        elif toss == 2:
-            text = "Oh you poor little {}. Your balance is 0 Tk.".format(name)
-        elif toss == 3:
-            text = "If you double your balance, it stays the same. Guess what your balance is {}".format(name)
             
-    elif bl < 0:
-        toss = random.randint(0,1)
-        if toss == 0:
-            text = "Oh I wish I could give you some money, {}. Your balance is {} Tk.".format(name, bl)
-        elif toss == 1:
-            text = "Ugh! I hate it when broke people ask me to check balance. Here's your balance {}: {} Tk.".format(name, bl)
-    elif bl > 0 and bl < 100:
-        toss = random.randint(0,1)
-        if toss == 0:
-            text = "You can't even afford a coffee {}. Here's your balance: {} Tk.".format(name, bl)
-        elif toss == 1:
-            text = "You should add fund, {}. You only have {} Tk. in your balance".format(name, bl)
-    elif bl > 1000:
-        toss = random.randint(0,1)
-        if toss == 0:
-            text = "Good day {}! Here's your balance rich guy: {} Tk.".format(name, bl)
-        elif toss == 1:
-            text = "Buy whatever you want {}. You have {} Tk. in your balance".format(name, bl)
-    else:
-        text = "Good day {}! Here's your balance: {} Tk.".format(name, bl)
-            
-    conn.commit()
-    conn.close()
     
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 # Define the /history command
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
