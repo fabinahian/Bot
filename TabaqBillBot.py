@@ -88,12 +88,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     
     user_group = update.message.chat.title
-    username = update.message.from_user.username
     name = update.message.from_user.first_name
+    admin_status = 0
+    
     if name is None:
         name = update.message.from_user.last_name
     if name is None:
         name = update.message.from_user.username
+        
+    if user_group is None:
+        user_group = user_id
+        admin_status = 1
     
     cursor.execute("SELECT * FROM users WHERE user_id=?", (user_id,))
     existing_value = cursor.fetchone()
@@ -102,7 +107,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Hello again {}! You're already a member, so no need to \"start\"".format(name))
     else:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome {}! You're now a member".format(name))
-        cursor.execute("INSERT INTO users (user_id, username, usergroup) VALUES (?, ?, ?)", (user_id, name, user_group))
+        cursor.execute("INSERT INTO users (user_id, username, usergroup, admin, balance) VALUES (?, ?, ?, ?, ?)", (user_id, name, user_group, admin_status, 0))
         conn.commit()
         
     conn.close()
@@ -482,11 +487,14 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_group = update.message.chat.title
-    
+    user_id = update.message.from_user.id
+    if user_group is None:
+        user_group = user_id
+        
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
-    cursor.execute("select username, admin from users where usergroup = ?", (user_group,))    
+    cursor.execute("select username, admin from users where usergroup = ?", (user_group,))
     # Fetch all rows
     rows = cursor.fetchall()
     # Get the column names
@@ -511,7 +519,10 @@ async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_group = update.message.chat.title
-    
+    user_id = update.message.from_user.id
+    if user_group is None:
+        user_group = user_id
+        
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
     
@@ -530,7 +541,7 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += "{}. {}".format(count, row["username"])
         if count == 1:
             text += " 👑 "
-        if count == total:
+        if count == total and count != 1:
             text += " 😞 "
         count += 1
         if row["admin"] == 1:
