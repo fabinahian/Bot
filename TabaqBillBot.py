@@ -7,6 +7,8 @@ import datetime
 import random
 import uuid
 import BotResponse
+import re
+
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
@@ -50,6 +52,24 @@ def get_time_category(current_time:datetime.datetime)->str:
     else:
         return "Night"
 
+def convert_units(input_str):
+    # Define a regular expression pattern to identify units
+    pattern = r'(\d+\.?\d*)([kKmM])'
+
+    # Find all matches in the input string
+    matches = re.findall(pattern, input_str)
+
+    # Define a dictionary to map unit suffixes to their multipliers
+    unit_multipliers = {'k': 1e3, 'K': 1e3, 'm': 1e6, 'M': 1e6}
+
+    # Process each match and perform the conversion
+    for match in matches:
+        value, unit = match
+        multiplier = unit_multipliers.get(unit, 1)
+        converted_value = float(value) * multiplier
+        input_str = input_str.replace(''.join(match), str(converted_value))
+
+    return input_str
 
 def getUserInfo(user_id = None, user_name = None, tx_id = None):
     conn = sqlite3.connect(db_file)
@@ -237,7 +257,7 @@ def getStringAndNumber(args:list):
     item = ""
     for x in args:
         if x[0] >= '0' and x[0] <= '9':
-            bill = float(x)
+            bill = float(convert_units(x))
         else:
             item += x + " "
     return item[:-1], bill
@@ -321,6 +341,54 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                             item = user_info["item"],
                                                             daytype = daytype,
                                                             n = n))
+    
+    except (IndexError, ValueError):
+        handle_error_command(update, context)
+        
+
+# Define the /pay command
+async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        user_id = update.message.from_user.id
+        user_info = getUserInfo(user_id=user_id)
+        member, amount = getStringAndNumber(context.args)
+        none_item = False
+        if len(member) == 0:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't transfer to yourself {name}".format(name = user_info["username"]))
+            return
+        
+        member_info = getUserInfo(user_name=member)
+        if member_info is None:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="I don't know this guy 😕".format(name = user_info["username"]))
+            return
+        if user_info["balance"] - amount < 0:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You don't have enough balance to transfer, {name} 😕".format(name = user_info["username"]))
+            return
+        
+        
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        
+        # Generate a unique transaction ID (TxID)
+        tx_id = str(uuid.uuid4())[:8]
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'debit', ?, ?)", (user_id, tx_id, member_info["username"], amount))
+        cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (amount, user_id))
+        tx_id = str(uuid.uuid4())[:8]
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'credit', ?, ?)", (member_info["user_id"], tx_id, user_info["username"], amount))
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, member_info["user_id"]))
+        
+        conn.commit()
+        conn.close()
+        
+        user_info = getUserInfo(user_id=user_id)
+        member_info = getUserInfo(user_id=member_info["user_id"])
+        
+        await context.bot.send_message(chat_id=update.effective_chat.id, 
+                                       text="That's what friends are for 🤗. {name1} transferred {amount} Tk. to {name2}'s account. Here's your balance now {name1}: {balance1} Tk.".format(name1 = user_info["username"],
+                                                                                                                                                                                            name2 = member_info["username"],
+                                                                                                                                                                                            amount = amount,
+                                                                                                                                                                                            balance1 = user_info["balance"]))
+        
     
     except (IndexError, ValueError):
         handle_error_command(update, context)
@@ -576,6 +644,7 @@ def main():
     setname_handler = CommandHandler("setname", setname)
     balance_handler = CommandHandler('balance', balance)
     pay_handler = CommandHandler('pay', pay)
+    transfer_handler = CommandHandler('transfer', transfer)
     history_handler = CommandHandler('history', history)
     addfund_handler = CommandHandler('addfund', addfund)
     editamount_handler = CommandHandler('editamount', editamount)
@@ -587,6 +656,7 @@ def main():
     application.add_handler(start_handler)
     application.add_handler(setname_handler)
     application.add_handler(pay_handler)
+    application.add_handler(transfer_handler)
     application.add_handler(balance_handler)
     application.add_handler(history_handler)
     application.add_handler(addfund_handler)
