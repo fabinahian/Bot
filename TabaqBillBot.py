@@ -20,15 +20,15 @@ logging.basicConfig(
 # Command descriptions
 COMMANDS = [
     "/start: Add yourself to the database (if not already added)",
-    "/addfund amount: Add funds to your balance",
-    "/pay item payment: Make a payment and subtract the bill from your balance",
+    "/addfund [amount]: Add funds to your balance",
+    "/pay [item] [payment]: Make a payment and subtract the bill from your balance",
     "/balance: Show your current balance",
-    "/history N: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
-    "/setname name: Set what the bot will call you",
-    "/editamount txId correct_amount: Change the amount for txId",
-    "/edititem txId correct_item: Change the item for txId",
+    "/history [N]: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
+    "/setname [name]: Set what the bot will call you",
+    "/editamount [txId] [correct_amount]: Change the amount for txId",
+    "/edititem [txId] [correct_item]: Change the item for txId",
     "/showmembers: List all the members",
-    "/allbalance: List balance for all members"
+    "/allbalance: List balance for all members",
     "/help: Show this message"
 ]
 
