@@ -540,9 +540,13 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for row in table_data:
         if row["transaction_type"] == "pay":
             text += "- On {}, you paid {} Tk. for {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
-        else:
+        elif row["transaction_type"] == "pay":
             text += "- On {}, you added {} Tk. to your fund. TxID: {}\n".format(row["timestamp"], row["amount"], row["tx_id"])
-    
+        elif row["transaction_type"] == "credit":
+            text += "- On {}, {} Tk. was transferred to your fund from {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
+        elif row["transaction_type"] == "debit":
+            text += "- On {}, you transferred {} Tk. to {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
+            
     cursor.execute("select balance from users where user_id = ?", (user_id,))
     bl = cursor.fetchone()[0]
     
