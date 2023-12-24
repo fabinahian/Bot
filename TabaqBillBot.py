@@ -252,8 +252,9 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                             balance = member_info["balance"],
                                                             amount = amount))
 
-    except (IndexError, ValueError):
-        handle_error_command(update, context)
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
 
 
 def getStringAndNumber(args:list):
@@ -345,8 +346,9 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                             daytype = daytype,
                                                             n = n))
     
-    except (IndexError, ValueError):
-        handle_error_command(update, context)
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
         
 
 # Define the /pay command
@@ -393,8 +395,9 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                                                                                                                                                             balance1 = user_info["balance"]))
         
     
-    except (IndexError, ValueError):
-        handle_error_command(update, context)
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
 
 
 async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -444,7 +447,8 @@ async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. Now your balance is {} Tk.".format(name, bl))
         
-    except (IndexError, ValueError):
+    except Exception as e:
+        logging.error(e)
         await handle_error_command(update, context)
 
 async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -466,7 +470,8 @@ async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Here you go {}, fixed it. That day you had {}".format(name, item))
         
-    except (IndexError, ValueError):
+    except Exception as e:
+        logging.error(e)
         await handle_error_command(update, context)
         
 # Define the /balance command
