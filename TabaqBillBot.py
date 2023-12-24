@@ -9,6 +9,8 @@ import uuid
 import BotResponse
 import re
 
+menu_image_folder = "\images\menu"
+menu_image_folder_path = os.path.join(os.getcwd(), menu_image_folder)
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
