@@ -200,7 +200,10 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 member_name = user_info["username"]
         
         member_info = getUserInfo(user_name=member_name) 
-               
+
+        if member_info["usergroup"] != update.message.chat.title:
+            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund for {name}. They are from a different group".format(name = member_info["username"]))
+            return
         conn = sqlite3.connect(db_file)
         cursor = conn.cursor()
         
