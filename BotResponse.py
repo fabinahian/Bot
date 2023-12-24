@@ -47,12 +47,12 @@ pay = {
         "Umm, do you need help cleaning those dishes {name}? Your balance is {balance} Tk."
     ],
     ">0day":[
-        "Nothing better than a{n} {item} in the {daytype}. Here's your balance {name}: {balance} Tk.",
+        "Nothing's better than a{n} {item} in the {daytype}. Here's your balance {name}: {balance} Tk.",
         "Good Day {name} 😊! You had a{n} {item}. Here's your balance: {balance} Tk.",
         "No one deserves {item} more than you {name}. You've earned it! You still have {balance} Tk. in your balance"
     ],
     ">0":[
-        "Nothing better than a{n} {item} in the {daytype}. Here's your balance {name}: {balance} Tk.",
+        "Nothing's better than a{n} {item} in the {daytype}. Here's your balance {name}: {balance} Tk.",
         "Good {daytype} {name} 😊! You had a{n} {item}. Here's your balance: {balance} Tk.",
         "No one deserves {item} more than you {name}. You've earned it! You still have {balance} Tk. in your balance"
     ]
