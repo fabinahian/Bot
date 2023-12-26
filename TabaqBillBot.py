@@ -9,8 +9,6 @@ import uuid
 import BotResponse
 import re
 
-menu_image_folder = "\images\menu"
-menu_image_folder_path = os.path.join(os.getcwd(), menu_image_folder)
 
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
@@ -483,12 +481,29 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if user_info["balance"] >= 3000:
         text = random.choice(BotResponse.balance["3k"])
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        
+        image_folder = "images"
+        balance_folder = "balance"
+        low_folder = "rich"
+        image_folder = os.path.join(os.getcwd(), image_folder, balance_folder, low_folder)
+        image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))]
+
+        await update.message.reply_photo(photo=random.choice(image_files), caption=text.format(name = user_info["username"],
                                                                                           balance = user_info["balance"]))
+        # await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        #                                                                                   balance = user_info["balance"]))
     elif user_info["balance"] >=2000:
         text = random.choice(BotResponse.balance["2k"])
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        image_folder = "images"
+        balance_folder = "balance"
+        low_folder = "rich"
+        image_folder = os.path.join(os.getcwd(), image_folder, balance_folder, low_folder)
+        image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))]
+
+        await update.message.reply_photo(photo=random.choice(image_files), caption=text.format(name = user_info["username"],
                                                                                           balance = user_info["balance"]))
+        # await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        #                                                                                   balance = user_info["balance"]))
     elif user_info["balance"] >= 1000:
         text = random.choice(BotResponse.balance["1k"])
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
@@ -507,65 +522,88 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                                                           balance = user_info["balance"]))
     elif user_info["balance"] == 0:
         text = random.choice(BotResponse.balance["0"])
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        
+        image_folder = "images"
+        balance_folder = "balance"
+        low_folder = "low"
+        image_folder = os.path.join(os.getcwd(), image_folder, balance_folder, low_folder)
+        image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))]
+
+        await update.message.reply_photo(photo=random.choice(image_files), caption=text.format(name = user_info["username"],
                                                                                           balance = user_info["balance"]))
+        # await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        #                                                                                   balance = user_info["balance"]))
     elif user_info["balance"] < 0:
         text = random.choice(BotResponse.balance["<0"])
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        
+        image_folder = "images"
+        balance_folder = "balance"
+        low_folder = "low"
+        image_folder = os.path.join(os.getcwd(), image_folder, balance_folder, low_folder)
+        image_files = [os.path.join(image_folder, f) for f in os.listdir(image_folder) if os.path.isfile(os.path.join(image_folder, f))]
+
+        await update.message.reply_photo(photo=random.choice(image_files), caption=text.format(name = user_info["username"],
                                                                                           balance = user_info["balance"]))
+        # await context.bot.send_message(chat_id=update.effective_chat.id, text=text.format(name = user_info["username"],
+        #                                                                                   balance = user_info["balance"]))
     
             
     
 
 # Define the /history command
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    
-    conn = sqlite3.connect(db_file)
-    cursor = conn.cursor()
-    
-    cursor.execute("select username from users where user_id = ?", (user_id,))
-    name = cursor.fetchone()[0]
+    try:
+        user_id = update.message.from_user.id
         
-    if len(context.args) == 1 and context.args[0].isnumeric():
-        cursor.execute("select * from transactions where user_id = ? order by timestamp desc limit ?", (user_id, int(context.args[0])))
-    elif len(context.args) == 0:
-        cursor.execute("select * from transactions where user_id = ? order by timestamp desc limit 10", (user_id,))
-    else:
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+        
+        cursor.execute("select username from users where user_id = ?", (user_id,))
+        name = cursor.fetchone()[0]
+            
+        if len(context.args) == 1 and context.args[0].isnumeric():
+            cursor.execute("select * from transactions where user_id = ? order by timestamp desc limit ?", (user_id, int(context.args[0])))
+        elif len(context.args) == 0:
+            cursor.execute("select * from transactions where user_id = ? order by timestamp desc limit 10", (user_id,))
+        else:
+            conn.commit()
+            conn.close()
+            await handle_error_command(update, context)
+            return
+        
+        # Fetch all rows
+        rows = cursor.fetchall()
+        # Get the column names
+        columns = [description[0] for description in cursor.description]
+
+        # Convert rows to a list of dictionaries
+        table_data = [dict(zip(columns, row)) for row in rows]
+        
+        text = "Good day {}! Here's your transaction history:\n\n".format(name)
+        
+        for row in table_data:
+            if row["transaction_type"] == "pay":
+                text += "- On {}, you paid {} Tk. for {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
+            elif row["transaction_type"] == "pay":
+                text += "- On {}, you added {} Tk. to your fund. TxID: {}\n".format(row["timestamp"], row["amount"], row["tx_id"])
+            elif row["transaction_type"] == "credit":
+                text += "- On {}, {} Tk. was transferred to your fund from {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
+            elif row["transaction_type"] == "debit":
+                text += "- On {}, you transferred {} Tk. to {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
+                
+        cursor.execute("select balance from users where user_id = ?", (user_id,))
+        bl = cursor.fetchone()[0]
+        
+        text += "\nYour current balance is {} Tk.".format(bl)
+        
         conn.commit()
         conn.close()
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! {} made an error in command".format(name))
-        return
-    
-    # Fetch all rows
-    rows = cursor.fetchall()
-    # Get the column names
-    columns = [description[0] for description in cursor.description]
 
-    # Convert rows to a list of dictionaries
-    table_data = [dict(zip(columns, row)) for row in rows]
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     
-    text = "Good day {}! Here's your transaction history:\n\n".format(name)
-    
-    for row in table_data:
-        if row["transaction_type"] == "pay":
-            text += "- On {}, you paid {} Tk. for {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
-        elif row["transaction_type"] == "pay":
-            text += "- On {}, you added {} Tk. to your fund. TxID: {}\n".format(row["timestamp"], row["amount"], row["tx_id"])
-        elif row["transaction_type"] == "credit":
-            text += "- On {}, {} Tk. was transferred to your fund from {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
-        elif row["transaction_type"] == "debit":
-            text += "- On {}, you transferred {} Tk. to {}. TxID: {}\n".format(row["timestamp"], row["amount"], row["item"], row["tx_id"])
-            
-    cursor.execute("select balance from users where user_id = ?", (user_id,))
-    bl = cursor.fetchone()[0]
-    
-    text += "\nYour current balance is {} Tk.".format(bl)
-    
-    conn.commit()
-    conn.close()
-
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
     
 async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_group = update.message.chat.title
@@ -636,6 +674,20 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
+async def tabaqmenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    user_info = getUserInfo(user_id=user_id)
+    image_folder = "images"
+    menu_folder = "menu"
+    menu_image_folder = os.path.join(os.getcwd(), image_folder, menu_folder)
+    image_files = [os.path.join(menu_image_folder, f) for f in os.listdir(menu_image_folder) if os.path.isfile(os.path.join(menu_image_folder, f))]
+
+    for image in image_files:
+        with open(image, 'rb') as photo:
+            await update.message.reply_photo(photo=photo, caption="Tabq Menu")
+            
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Pick one {name}".format(name=user_info["username"]))
+
 # Define a function to handle incoming messages
 async def handle_error_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
@@ -665,6 +717,7 @@ def main():
     edititem_handler = CommandHandler('edititem', edititem)
     showmembers_handler = CommandHandler('showmembers', showmembers)
     allbalance_handler = CommandHandler('allbalance', allbalance)
+    tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
     help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
@@ -678,6 +731,7 @@ def main():
     application.add_handler(edititem_handler)
     application.add_handler(showmembers_handler)
     application.add_handler(allbalance_handler)
+    application.add_handler(tabaqmenu_handler)
     application.add_handler(help_handler)
     
     application.run_polling()
