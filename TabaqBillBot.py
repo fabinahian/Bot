@@ -8,6 +8,8 @@ import random
 import uuid
 import BotResponse
 import re
+import ast
+
 
 
 db_file = 'Tabaq.db'
@@ -31,9 +33,24 @@ COMMANDS = [
     "/edititem [txId] [correct_item]: Change the item for txId",
     "/showmembers: List all the members",
     "/allbalance: List balance for all members",
+    "/tabaqmenu: Show Tabaq Coffe Menu",
+    "/calc: Calculate an expression",
     "/help: Show this message"
 ]
 
+def calculate_expression(expression):
+    try:
+        # Parse the expression safely
+        parsed_expression = ast.parse(expression, mode='eval')
+        
+        # Evaluate the parsed expression
+        result = eval(compile(parsed_expression, filename='<string>', mode='eval'))
+        
+        return result
+    except Exception as e:
+        logging.error(e)
+        return None
+    
 def get_time_category(current_time:datetime.datetime)->str:
 
     current_time = current_time.time()
@@ -687,6 +704,22 @@ async def tabaqmenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_photo(photo=photo, caption="Tabq Menu")
             
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Pick one {name}".format(name=user_info["username"]))
+    
+async def calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    user_info = getUserInfo(user_id=user_id)
+    if len(context.args) == 0:
+        text = "You have give me something to calculate, {name}".format(name=user_info["username"])
+        
+    expression = ' '.join(context.args)
+    result = calculate_expression(expression)
+    if result is None:
+        await handle_error_command(update, context)
+        return
+    
+    text = "Ans = {result}".format(expression=expression, result = result)
+    
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
 # Define a function to handle incoming messages
 async def handle_error_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -718,6 +751,7 @@ def main():
     showmembers_handler = CommandHandler('showmembers', showmembers)
     allbalance_handler = CommandHandler('allbalance', allbalance)
     tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
+    calc_handler = CommandHandler('calc', calc)
     help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
@@ -732,6 +766,7 @@ def main():
     application.add_handler(showmembers_handler)
     application.add_handler(allbalance_handler)
     application.add_handler(tabaqmenu_handler)
+    application.add_handler(calc_handler)
     application.add_handler(help_handler)
     
     application.run_polling()
@@ -748,7 +783,8 @@ if __name__ == "__main__":
             user_id INTEGER UNIQUE NOT NULL,
             username TEXT,
             usergroup TEXT,
-            balance REAL DEFAULT 0.0
+            balance REAL DEFAULT 0.0,
+            admin INTEGER DEFAULT 0
         )
     ''')
 
