@@ -169,16 +169,21 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor = conn.cursor()
     
     user_id = update.message.from_user.id
+    user_info = getUserInfo(user_id=user_id)
     # print(context.args)
     new_name = ' '.join(context.args)
     
     cursor.execute("select username from users where user_id = ?", (user_id,))
     old_name = cursor.fetchone()[0]
     
-    old_profile_file = os.path.join(profile_pic_folder, old_name + ".jpg")
+    image_files = [f for f in os.listdir(profile_pic_folder)]
+    image = find_matching_string(image_files, user_info["username"])
+    
+    old_profile_file = os.path.join(profile_pic_folder, image)
     new_profile_file = os.path.join(profile_pic_folder, new_name + ".jpg")
     
-    rename_file(old_filename=old_profile_file, new_filename=new_profile_file)
+    if image is not None:
+        rename_file(old_filename=old_profile_file, new_filename=new_profile_file)
     
     if len(context.args) == 0:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh come on {}! You gotta give me a name.".format(old_name))
