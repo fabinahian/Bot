@@ -694,7 +694,9 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total = len(rows)
     text = ""
     count = 1
+    fund = 0
     for row in table_data:
+        fund += row["balance"]
         text += "{}. {}".format(count, row["username"])
         if count == 1:
             text += " 👑 "
@@ -705,7 +707,7 @@ async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += " (Admin)"
         text += ":{} Tk.".format(row["balance"])
         text += "\n"
-    
+    text += "\nTotal amount in the fund: {} Tk.".format(fund)
     conn.commit()
     conn.close()
 
