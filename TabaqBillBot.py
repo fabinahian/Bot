@@ -15,6 +15,8 @@ import ast
 db_file = 'Tabaq.db'
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
 only_admin_add_fund = True
+profile_pic_folder = os.path.join(os.getcwd(), "images", "profiles")
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -115,8 +117,21 @@ def getUserInfo(user_id = None, user_name = None, tx_id = None):
     
     return user_info
     
-        
-
+def rename_file(old_filename, new_filename):
+    try:
+        os.rename(old_filename, new_filename)
+        logging.info(f"File '{old_filename}' has been successfully renamed to '{new_filename}'.")
+    except FileNotFoundError:
+        logging.error(f"File '{old_filename}' not found.")
+    except FileExistsError:
+        logging.error(f"File '{new_filename}' already exists.")
+  
+def find_matching_string(strings, target_substring):
+    for string in strings:
+        s = string.replace(".jpg", "")
+        if target_substring in s or s in target_substring:
+            return string
+    return None
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = sqlite3.connect(db_file)
@@ -159,6 +174,11 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     cursor.execute("select username from users where user_id = ?", (user_id,))
     old_name = cursor.fetchone()[0]
+    
+    old_profile_file = os.path.join(profile_pic_folder, old_name + ".jpg")
+    new_profile_file = os.path.join(profile_pic_folder, new_name + ".jpg")
+    
+    rename_file(old_filename=old_profile_file, new_filename=new_profile_file)
     
     if len(context.args) == 0:
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh come on {}! You gotta give me a name.".format(old_name))
@@ -705,6 +725,20 @@ async def tabaqmenu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Pick one {name}".format(name=user_info["username"]))
     
+async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    user_info = getUserInfo(user_id=user_id)
+    
+    image_files = [f for f in os.listdir(profile_pic_folder)]
+    image = find_matching_string(image_files, user_info["username"])
+    if image is None:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Are you John Cena? Cause I can't see you")
+        return
+    
+    image = os.path.join(profile_pic_folder, image)
+    with open(image, 'rb') as photo:
+        await update.message.reply_photo(photo=photo, caption="This is you {}".format(user_info["username"]))
+    
 async def calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_info = getUserInfo(user_id=user_id)
@@ -751,6 +785,7 @@ def main():
     showmembers_handler = CommandHandler('showmembers', showmembers)
     allbalance_handler = CommandHandler('allbalance', allbalance)
     tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
+    whoami_handler = CommandHandler('whoami', whoami)
     calc_handler = CommandHandler('calc', calc)
     help_handler = CommandHandler('help', help_command)
     
@@ -766,6 +801,7 @@ def main():
     application.add_handler(showmembers_handler)
     application.add_handler(allbalance_handler)
     application.add_handler(tabaqmenu_handler)
+    application.add_handler(whoami_handler)
     application.add_handler(calc_handler)
     application.add_handler(help_handler)
     
