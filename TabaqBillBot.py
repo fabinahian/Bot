@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import sqlite3
@@ -10,6 +11,14 @@ import BotResponse
 import re
 import ast
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s]: %(message)s",
+    handlers=[
+        logging.StreamHandler(),  # Output to console
+        RotatingFileHandler("log.log", maxBytes=1024*5, backupCount=0)  # Rotating file handler
+    ]
+)
 
 
 db_file = 'Tabaq.db'
