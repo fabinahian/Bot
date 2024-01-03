@@ -5,6 +5,7 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import sqlite3
 import os
 import datetime
+import pytz
 import random
 import uuid
 import BotResponse
@@ -39,6 +40,7 @@ COMMANDS = [
     "/pay [item] [payment]: Make a payment and subtract the bill from your balance",
     "/balance: Show your current balance",
     "/history [N]: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
+    "/session [h]: Show the transaction summary of last N hour. If nothing is passed then shows last 1 hour",
     "/setname [name]: Set what the bot will call you",
     "/editamount [txId] [correct_amount]: Change the amount for txId",
     "/edititem [txId] [correct_item]: Change the item for txId",
@@ -98,6 +100,49 @@ def convert_units(input_str):
         input_str = input_str.replace(''.join(match), str(converted_value))
 
     return input_str
+
+
+def get_GMT6_time(time:datetime):
+    return time + datetime.timedelta(hours=6)
+
+def get_transactions_summary(hour = 1, group = 'Tabaq mutual fund'):
+    # Connect to the database
+    conn = sqlite3.connect(db_file)
+    cursor = conn.cursor()
+    
+    one_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=hour)
+    one_hour_ago = get_GMT6_time(one_hour_ago)
+    one_hour_ago_timestamp = one_hour_ago.strftime('%Y-%m-%d %H:%M:%S')
+    current_time = datetime.datetime.now()
+    current_time = get_GMT6_time(current_time)
+    current_timestamp = current_time.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Get all transactions in a dictionary format
+    all_transactions_query = """
+        SELECT * FROM transactions 
+        WHERE timestamp >= ? AND timestamp <= ?
+        AND user_id IN (SELECT user_id FROM users WHERE usergroup = ?)
+    """
+
+    cursor.execute(all_transactions_query, (one_hour_ago_timestamp, current_timestamp, group))
+    rows = cursor.fetchall()
+
+    # Close the database connection
+    conn.close()
+
+    # Process the results
+    summary = {'addfund': 0, 'pay': 0}
+    
+    # Get the column names
+    columns = [description[0] for description in cursor.description]
+
+    # Convert rows to a list of dictionaries
+    transactions_dict = [dict(zip(columns, row)) for row in rows]
+    
+    for row in transactions_dict:
+        summary[row['transaction_type']] += row['amount']
+        
+    return summary, transactions_dict
 
 def getUserInfo(user_id = None, user_name = None, tx_id = None):
     conn = sqlite3.connect(db_file)
@@ -241,7 +286,8 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_id = update.message.from_user.id
         user_info = getUserInfo(user_id=user_id)
-        
+        time = datetime.datetime.now()
+        time = get_GMT6_time(time)
         if user_info["admin"] == False:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(user_info["username"]))
             return
@@ -264,7 +310,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tx_id = str(uuid.uuid4())[:8]
         
         # Insert a record in the transactions table
-        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount) VALUES (?, ?, 'addfund', ?)", (member_info["user_id"], tx_id, amount))
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, amount, timestamp) VALUES (?, ?, 'addfund', ?, ?)", (member_info["user_id"], tx_id, amount, time))
 
         cursor.execute("select balance from users where user_id = ?", (member_info["user_id"],))
         member_info["balance"] = cursor.fetchone()[0]
@@ -320,7 +366,8 @@ def getStringAndNumber(args:list):
 # Define the /pay command
 async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        time = update.message.date.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+        time = datetime.datetime.now()
+        time = get_GMT6_time(time)
         item, bill = getStringAndNumber(context.args)
         none_item = False
         if len(item) == 0:
@@ -342,7 +389,7 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Generate a unique transaction ID (TxID)
         tx_id = str(uuid.uuid4())[:8]
-        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount) VALUES (?, ?, 'pay', ?, ?)", (user_id, tx_id, item, bill))
+        cursor.execute("INSERT INTO transactions (user_id, tx_id, transaction_type, item, amount, timestamp) VALUES (?, ?, 'pay', ?, ?, ?)", (user_id, tx_id, item, bill, time))
         cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id = ?", (bill, user_id))
         cursor.execute("select balance from users where user_id = ?", (user_id,))
         user_info["balance"] = cursor.fetchone()[0]
@@ -655,6 +702,41 @@ async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(e)
         await handle_error_command(update, context)
+        
+async def session(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        user_id = update.message.from_user.id
+        user_info = getUserInfo(user_id=user_id)
+        if len(context.args) == 0:
+            hour = 1
+        else:
+            hour = float(context.args[0])
+        summary, transactions = get_transactions_summary(hour=hour, group=user_info["usergroup"])
+        
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+    
+        
+        text = "In the past {h} hour:\n\n".format(h = hour)
+        
+        for t in transactions:
+            cursor.execute("select username from users where user_id = ?", (t["user_id"],))
+            name = cursor.fetchone()[0]
+            if t["transaction_type"] == 'pay':
+                text += "{name} paid {amount} Tk. for {item} at {time}\n".format(name = name, item = t["item"], time = t["timestamp"], amount = t["amount"])
+            elif t["transaction_type"] == 'addfund':
+                text += "{name} added {amount} Tk. at {time}\n".format(name = name, item = t["item"], time = t["timestamp"], amount = t["amount"])
+        
+        text += "\nIn this session:"
+        text += "\nTotal added: {amount} Tk.".format(amount = summary['addfund'])
+        text += "\nTotal paid: {amount} Tk.".format(amount = summary['pay'])
+        text += "\nBalance: {amount} Tk.".format(amount = summary['pay'] - summary['addfund'])
+
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
     
 async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_group = update.message.chat.title
@@ -795,6 +877,7 @@ def main():
     pay_handler = CommandHandler('pay', pay)
     transfer_handler = CommandHandler('transfer', transfer)
     history_handler = CommandHandler('history', history)
+    session_handler = CommandHandler('session', session)
     addfund_handler = CommandHandler('addfund', addfund)
     editamount_handler = CommandHandler('editamount', editamount)
     edititem_handler = CommandHandler('edititem', edititem)
@@ -811,6 +894,7 @@ def main():
     application.add_handler(transfer_handler)
     application.add_handler(balance_handler)
     application.add_handler(history_handler)
+    application.add_handler(session_handler)
     application.add_handler(addfund_handler)
     application.add_handler(editamount_handler)
     application.add_handler(edititem_handler)
@@ -857,3 +941,6 @@ if __name__ == "__main__":
     conn.commit()
     conn.close()
     main()
+    # s, t = get_transactions_summary(hour=1)
+    # print(s)
+    # print(t)
