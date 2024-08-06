@@ -81,36 +81,6 @@ async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 
-
-async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_info = get_user_info(user_id=user_id)
-    users = get_usernames_by_usergroup(usergroup=user_info["usergroup"])
-    if(len(users) == 0):
-        logger.error("No users found")
-        await context.bot.send_message(chat_id=update.effective_chat.id, text="Too bad, no one is in your group :(")
-        return
-
-    users = sorted(users, key=lambda x:x["balance"], reverse=True)
-    text = ""
-    count = 1
-    fund = 0
-    total = len(users)
-    for user in users:
-        fund += user["balance"]
-        text += "{}. {}".format(count, user["username"])
-        if count == 1:
-            text += " 👑 "
-        if count == total and count != 1:
-            text += " 😞 "
-        count += 1
-        if user["admin"] == 1:
-            text += " (Admin)"
-        text += ":{} Tk.".format(user["balance"])
-        text += "\n"
-    text += "\nTotal amount in the fund: {} Tk.".format(fund)
-
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     
     
 async def help_command(update, context):
