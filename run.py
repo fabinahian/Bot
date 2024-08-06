@@ -1,8 +1,9 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
-from bot.handlers.info.info import start, setname, showmembers, allbalance, help_command
+from bot.handlers.info.info import start, setname, showmembers, help_command
 from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem
 from bot.handlers.utils.utils import calc
+from bot.handlers.statements.statements import balance, allbalance, history, session
 
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
 
@@ -11,11 +12,11 @@ def main():
     
     start_handler = CommandHandler("start", start)
     setname_handler = CommandHandler("setname", setname)
-    # balance_handler = CommandHandler('balance', balance)
+    balance_handler = CommandHandler('balance', balance)
     pay_handler = CommandHandler('pay', pay)
     transfer_handler = CommandHandler('transfer', transfer)
-    # history_handler = CommandHandler('history', history)
-    # session_handler = CommandHandler('session', session)
+    history_handler = CommandHandler('history', history)
+    session_handler = CommandHandler('session', session)
     addfund_handler = CommandHandler('addfund', addfund)
     editamount_handler = CommandHandler('editamount', editamount)
     edititem_handler = CommandHandler('edititem', edititem)
@@ -30,9 +31,9 @@ def main():
     application.add_handler(setname_handler)
     application.add_handler(pay_handler)
     application.add_handler(transfer_handler)
-    # application.add_handler(balance_handler)
-    # application.add_handler(history_handler)
-    # application.add_handler(session_handler)
+    application.add_handler(balance_handler)
+    application.add_handler(history_handler)
+    application.add_handler(session_handler)
     application.add_handler(addfund_handler)
     application.add_handler(editamount_handler)
     application.add_handler(edititem_handler)
