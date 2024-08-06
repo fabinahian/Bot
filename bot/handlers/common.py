@@ -2,8 +2,10 @@ import ast
 import re
 import os
 from datetime import datetime, timedelta
-from bot.logging_config import logger, logging
 from bot.database.utils import get_user_by_username, get_user_by_user_id, get_user_by_tx_id
+from telegram import Update
+from telegram.ext import ContextTypes
+from bot.logging_config import logger, logging
 
 
 logger = logging.getLogger(__name__)
@@ -85,6 +87,15 @@ def find_matching_string(strings, target_substring):
             return string
     return None
 
+def getStringAndNumber(args:list):
+    item = ""
+    for x in args:
+        if x[0] >= '0' and x[0] <= '9':
+            bill = float(convert_units(x))
+        else:
+            item += x + " "
+    return item[:-1], bill
+
 def rename_file(old_filename, new_filename):
     try:
         os.rename(old_filename, new_filename)
@@ -121,4 +132,8 @@ def get_user_info(user_id = None, user_name = None, tx_id = None):
     return None
     
     
-    
+async def handle_error_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.from_user.id
+    user_info = get_user_info(user_id=user_id)
+    name = user_info["username"]
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! That's not a valid command {}".format(name))
