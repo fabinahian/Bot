@@ -127,9 +127,49 @@ def update_transaction_and_balance(tx_id, new_amount = None, item = None):
     finally:
         session.close()
 
+def get_last_n_transactions(user_id, n = 10):
+    session = get_session()
+    try:
+        transactions = (
+            session.query(Transaction)
+            .filter_by(user_id=user_id)
+            .order_by(Transaction.timestamp.desc())
+            .limit(n)
+            .all()
+        )
+        return [transaction.as_dict() for transaction in transactions]
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+
+def get_session_summary(usergroup, start_time, end_time):
+    session = get_session()
+    try:
+        # Get all users in the specified usergroup
+        users = session.query(User).filter_by(usergroup=usergroup).all()
+        user_ids = [user.user_id for user in users]
+
+        # Get transactions for these users between the specified timestamps
+        transactions = (
+            session.query(Transaction)
+            .filter(Transaction.user_id.in_(user_ids))
+            .filter(Transaction.timestamp.between(start_time, end_time))
+            .order_by(Transaction.timestamp)
+            .all()
+        )
+
+        return [transaction.as_dict() for transaction in transactions]
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
 
 # Add this method to the User model for convenience
 def as_dict(self):
     return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 User.as_dict = as_dict
+Transaction.as_dict = as_dict
