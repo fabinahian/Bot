@@ -872,11 +872,11 @@ def main():
     
     start_handler = CommandHandler("start", start)#
     setname_handler = CommandHandler("setname", setname)#
-    balance_handler = CommandHandler('balance', balance)
+    balance_handler = CommandHandler('balance', balance)#
     pay_handler = CommandHandler('pay', pay)#
     transfer_handler = CommandHandler('transfer', transfer)#
-    history_handler = CommandHandler('history', history)
-    session_handler = CommandHandler('session', session)
+    history_handler = CommandHandler('history', history)#
+    session_handler = CommandHandler('session', session)#
     addfund_handler = CommandHandler('addfund', addfund)#
     editamount_handler = CommandHandler('editamount', editamount)#
     edititem_handler = CommandHandler('edititem', edititem)#
