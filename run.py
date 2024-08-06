@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
-from bot.handlers.info.start import start
+from bot.handlers.info.info import start, setname, showmembers, allbalance, help_command
 
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
 
@@ -8,7 +8,7 @@ def main():
     application = ApplicationBuilder().token(token).build()
     
     start_handler = CommandHandler("start", start)
-    # setname_handler = CommandHandler("setname", setname)
+    setname_handler = CommandHandler("setname", setname)
     # balance_handler = CommandHandler('balance', balance)
     # pay_handler = CommandHandler('pay', pay)
     # transfer_handler = CommandHandler('transfer', transfer)
@@ -17,15 +17,15 @@ def main():
     # addfund_handler = CommandHandler('addfund', addfund)
     # editamount_handler = CommandHandler('editamount', editamount)
     # edititem_handler = CommandHandler('edititem', edititem)
-    # showmembers_handler = CommandHandler('showmembers', showmembers)
-    # allbalance_handler = CommandHandler('allbalance', allbalance)
+    showmembers_handler = CommandHandler('showmembers', showmembers)
+    allbalance_handler = CommandHandler('allbalance', allbalance)
     # tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
     # whoami_handler = CommandHandler('whoami', whoami)
     # calc_handler = CommandHandler('calc', calc)
-    # help_handler = CommandHandler('help', help_command)
+    help_handler = CommandHandler('help', help_command)
     
     application.add_handler(start_handler)
-    # application.add_handler(setname_handler)
+    application.add_handler(setname_handler)
     # application.add_handler(pay_handler)
     # application.add_handler(transfer_handler)
     # application.add_handler(balance_handler)
@@ -34,12 +34,12 @@ def main():
     # application.add_handler(addfund_handler)
     # application.add_handler(editamount_handler)
     # application.add_handler(edititem_handler)
-    # application.add_handler(showmembers_handler)
-    # application.add_handler(allbalance_handler)
+    application.add_handler(showmembers_handler)
+    application.add_handler(allbalance_handler)
     # application.add_handler(tabaqmenu_handler)
     # application.add_handler(whoami_handler)
     # application.add_handler(calc_handler)
-    # application.add_handler(help_handler)
+    application.add_handler(help_handler)
     
     application.run_polling()
 
