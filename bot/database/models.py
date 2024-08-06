@@ -27,3 +27,6 @@ class Transaction(Base):
     item = Column(Text, nullable=False)
     amount = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    def as_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
