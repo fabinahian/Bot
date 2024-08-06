@@ -1,11 +1,29 @@
 import ast
 import re
+import os
 from datetime import datetime, timedelta
 from bot.logging_config import logger, logging
 from bot.database.utils import get_user_by_username, get_user_by_user_id, get_user_by_tx_id
 
 
 logger = logging.getLogger(__name__)
+
+COMMANDS = [
+    "/start: Add yourself to the database (if not already added)",
+    "/addfund [amount]: Add funds to your balance",
+    "/pay [item] [payment]: Make a payment and subtract the bill from your balance",
+    "/balance: Show your current balance",
+    "/history [N]: Show the last N statements of your account. If nothing is passed then last 10 statements is shown",
+    "/session [h]: Show the transaction summary of last N hour. If nothing is passed then shows last 1 hour",
+    "/setname [name]: Set what the bot will call you",
+    "/editamount [txId] [correct_amount]: Change the amount for txId",
+    "/edititem [txId] [correct_item]: Change the item for txId",
+    "/showmembers: List all the members",
+    "/allbalance: List balance for all members",
+    "/tabaqmenu: Show Tabaq Coffe Menu",
+    "/calc: Calculate an expression",
+    "/help: Show this message"
+]
 
 def calculate_expression(expression):
     try:
@@ -59,6 +77,22 @@ def convert_units(input_str):
 
 def get_GMT6_time(time:datetime):
     return time + timedelta(hours=6)
+
+def find_matching_string(strings, target_substring):
+    for string in strings:
+        s = string.replace(".jpg", "")
+        if target_substring in s or s in target_substring:
+            return string
+    return None
+
+def rename_file(old_filename, new_filename):
+    try:
+        os.rename(old_filename, new_filename)
+        logging.info(f"File '{old_filename}' has been successfully renamed to '{new_filename}'.")
+    except FileNotFoundError:
+        logging.error(f"File '{old_filename}' not found.")
+    except FileExistsError:
+        logging.error(f"File '{new_filename}' already exists.")
 
 def get_user_info(user_id = None, user_name = None, tx_id = None):
     if user_id is not None:
