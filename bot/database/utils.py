@@ -39,6 +39,20 @@ def create_user(user_id, username, usergroup, admin, balance):
     session.commit()
     session.close()
 
+def update_username(user_id, new_username):
+    session = get_session()
+    user = session.query(User).filter_by(user_id=user_id).first()
+    if user:
+        user.username = new_username
+        session.commit()
+    session.close()
+    
+def get_usernames_by_usergroup(usergroup):
+    session = get_session()
+    users = session.query(User).filter_by(usergroup=usergroup).all()
+    session.close()
+    return [{'username': user.username, 'balance': user.balance, 'admin': user.admin} for user in users]
+
 # Add this method to the User model for convenience
 def as_dict(self):
     return {c.name: getattr(self, c.name) for c in self.__table__.columns}
