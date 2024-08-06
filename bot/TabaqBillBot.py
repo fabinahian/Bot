@@ -5,7 +5,6 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import sqlite3
 import os
 import datetime
-import pytz
 import random
 import uuid
 import BotResponse

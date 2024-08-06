@@ -1,4 +1,4 @@
-import emoji
+
 
 addfund = {
     "3k":[

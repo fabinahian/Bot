@@ -1,6 +1,10 @@
 __pycache__/
+**/__pycache__/
 .vscode/
 *.pem
 venv/
+logs/
 *.log
 *.log.*
+env/
+.env
