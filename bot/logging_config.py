@@ -1,5 +1,6 @@
 import os
 import logging.config
+from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,10 +19,7 @@ LOGGING_CONFIG = {
     "formatters": {
         "default": {
             "format": "[%(asctime)s] [%(levelname)s | %(name)s] (%(module)s) %(message)s",
-        },
-        "uvicorn": {
-            "format": "[%(asctime)s] [%(levelname)s | %(name)s] %(message)s",
-        },
+        }
     },
     "handlers": {
         "console": {
@@ -29,31 +27,18 @@ LOGGING_CONFIG = {
             "formatter": "default",
         },
         "file": {
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": log_path,
             "formatter": "default",
-        },
-        "uvicorn_file": {
-            "class": "logging.FileHandler",
-            "filename": log_path,
-            "formatter": "uvicorn",
-        },
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 5,
+        }
     },
     "loggers": {
         "": {  # root logger
             "level": "DEBUG" if os.getenv("DEBUG", "True") == "True" else "INFO",
             "handlers": ["console", "file"],
-        },
-        "uvicorn": {
-            "level": "DEBUG" if os.getenv("DEBUG", "True") == "True" else "INFO",
-            "handlers": ["console", "uvicorn_file"],
-            "propagate": False,
-        },
-        "uvicorn.access": {
-            "level": "DEBUG" if os.getenv("DEBUG", "True") == "True" else "INFO",
-            "handlers": ["console", "uvicorn_file"],
-            "propagate": False,
-        },
+        }
     },
 }
 
