@@ -4,6 +4,7 @@ from bot.handlers.info.info import start, setname, showmembers, help_command
 from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem, distribute
 from bot.handlers.utils.utils import calc
 from bot.handlers.statements.statements import balance, allbalance, history, session
+from bot.response.response import generate_response
 
 token = '6443735527:AAH-62niLYpw7z6VRSyz3IQkFNV9xB_sWhY'
 
