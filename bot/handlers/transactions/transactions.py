@@ -1,6 +1,6 @@
 from bot.handlers.common import get_user_info, handle_error_command, get_GMT6_time
 from bot.handlers.common import getStringAndNumber
-from bot.database.utils import insert_transaction_and_update_balance, update_transaction_and_balance
+from bot.database.utils import insert_transaction_and_update_balance, update_transaction_and_balance, distribute_payment, distribute_payment_between_users
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
@@ -135,6 +135,31 @@ async def edititem(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = update_transaction_and_balance(tx_id=tx_id, item=item)
         
         text="Here you go {}, fixed it.".format(user_info["username"])
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+        
+    except Exception as e:
+        logging.error(e)
+        await handle_error_command(update, context)
+
+
+async def distribute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        user_id = update.message.from_user.id
+        user_info = get_user_info(user_id=user_id)
+        
+        if(len(context.args) == 0):
+            raise ValueError("Invalid argument passed")
+        
+        item, total_amount = getStringAndNumber(context.args[:2])
+        
+        if(len(context.args) > 2):
+            usernames = context.args[2:]
+            amount_distributed = distribute_payment_between_users(usernames=usernames, total_amount=total_amount, item=item)
+            text=f"{amount_distributed} Tk. ditributed between {str(usernames)}"
+        else:
+            amount_distributed = distribute_payment(usergroup=user_info["usergroup"], total_amount=total_amount, item=item)
+            text=f"{amount_distributed} Tk. ditributed between all users of the group {user_info["usergroup"]}"
+            
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         
     except Exception as e:

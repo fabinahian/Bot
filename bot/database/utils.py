@@ -3,6 +3,7 @@ from sqlalchemy import or_
 from bot.database.models import User, Transaction
 from bot.database.database import get_session
 import uuid
+from datetime import datetime
 
 
 credit_transaction_types = ["addfund", "credit"]
@@ -166,6 +167,82 @@ def get_session_summary(usergroup, start_time, end_time):
         raise e
     finally:
         session.close()
+
+
+def distribute_payment(usergroup, total_amount, item, transaction_type="pay"):
+    session = get_session()
+    try:
+        # Get all users in the specified usergroup
+        users = session.query(User).filter_by(usergroup=usergroup).all()
+        if not users:
+            raise ValueError("No users found in the specified user group")
+        
+        amount = round(total_amount/len(users), 2)
+        
+        for user in users:
+            # if user.balance < amount:
+            #     raise ValueError(f"User {user.username} does not have enough balance")
+            # Reduce user balance
+            user.balance -= amount
+
+            # Insert a transaction
+            tx_id = str(uuid.uuid4())
+            transaction = Transaction(
+                user_id=user.user_id,
+                tx_id=tx_id,
+                transaction_type=transaction_type,
+                item=item,
+                amount=-amount,
+                timestamp=datetime.now()
+            )
+            session.add(transaction)
+
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+    return amount
+
+def distribute_payment_between_users(usernames, total_amount, item, transaction_type="pay"):
+    session = get_session()
+    try:
+        amount = round(total_amount/len(usernames), 2)
+        for user in usernames:
+            # Get users with usernames matching the user
+            users = session.query(User).filter(User.username.like(f"%{user}%")).all()
+            if not users:
+                print(f"No users found with the username user '{user}'")
+                continue
+
+            for user in users:
+                # if user.balance < amount:
+                #     print(f"User {user.username} does not have enough balance. Skipping.")
+                #     continue
+
+                # Reduce user balance
+                user.balance -= amount
+
+                # Insert a transaction
+                tx_id = str(uuid.uuid4())
+                transaction = Transaction(
+                    user_id=user.user_id,
+                    tx_id=tx_id,
+                    transaction_type=transaction_type,
+                    item=item,
+                    amount=-amount,
+                    timestamp=datetime.now()
+                )
+                session.add(transaction)
+
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+    return amount
 
 # Add this method to the User model for convenience
 def as_dict(self):
