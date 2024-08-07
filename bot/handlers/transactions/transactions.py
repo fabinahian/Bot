@@ -93,7 +93,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = get_user_info(user_id=user_id)
         
         if user_info["admin"] == False:
-            prompt = f"{user_info["username"]} tried to add {amount} Tk. to themself which is not allowed because they are not the admin"
+            prompt = f"{user_info["username"]} tried to add money to themself which is not allowed because they are not the admin"
             response = generate_response(prompt)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
