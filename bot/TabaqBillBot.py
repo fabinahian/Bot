@@ -5,7 +5,6 @@ from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 import sqlite3
 import os
 import datetime
-import pytz
 import random
 import uuid
 import BotResponse
@@ -871,22 +870,22 @@ async def help_command(update, context):
 def main():
     application = ApplicationBuilder().token(token).build()
     
-    start_handler = CommandHandler("start", start)
-    setname_handler = CommandHandler("setname", setname)
-    balance_handler = CommandHandler('balance', balance)
-    pay_handler = CommandHandler('pay', pay)
-    transfer_handler = CommandHandler('transfer', transfer)
-    history_handler = CommandHandler('history', history)
-    session_handler = CommandHandler('session', session)
-    addfund_handler = CommandHandler('addfund', addfund)
-    editamount_handler = CommandHandler('editamount', editamount)
-    edititem_handler = CommandHandler('edititem', edititem)
-    showmembers_handler = CommandHandler('showmembers', showmembers)
-    allbalance_handler = CommandHandler('allbalance', allbalance)
+    start_handler = CommandHandler("start", start)#
+    setname_handler = CommandHandler("setname", setname)#
+    balance_handler = CommandHandler('balance', balance)#
+    pay_handler = CommandHandler('pay', pay)#
+    transfer_handler = CommandHandler('transfer', transfer)#
+    history_handler = CommandHandler('history', history)#
+    session_handler = CommandHandler('session', session)#
+    addfund_handler = CommandHandler('addfund', addfund)#
+    editamount_handler = CommandHandler('editamount', editamount)#
+    edititem_handler = CommandHandler('edititem', edititem)#
+    showmembers_handler = CommandHandler('showmembers', showmembers)#
+    allbalance_handler = CommandHandler('allbalance', allbalance)#
     tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
     whoami_handler = CommandHandler('whoami', whoami)
-    calc_handler = CommandHandler('calc', calc)
-    help_handler = CommandHandler('help', help_command)
+    calc_handler = CommandHandler('calc', calc)#
+    help_handler = CommandHandler('help', help_command)#
     
     application.add_handler(start_handler)
     application.add_handler(setname_handler)
