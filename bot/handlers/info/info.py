@@ -51,10 +51,10 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text="Oh come on {}! You gotta give me a name.".format(user_info["username"]))
         return
     
-    logger.info(f"User changed their name from {user_info["username"]} to {new_name}")
+    logger.info(f'User changed their name from {user_info["username"]} to {new_name}')
     update_username(user_id=user_info["user_id"], new_username=new_name)
     
-    prompt = f"{user_info["username"]} changed their name to {new_name}. balance: {user_info["balance"]} Make a joke about this"
+    prompt = f'{user_info["username"]} changed their name to {new_name}. balance: {user_info["balance"]} Make a joke about this'
     response = generate_response(prompt)
             
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
