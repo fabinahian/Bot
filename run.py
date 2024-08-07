@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 from bot.handlers.info.info import start, setname, showmembers, help_command
-from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem
+from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem, distribute
 from bot.handlers.utils.utils import calc
 from bot.handlers.statements.statements import balance, allbalance, history, session
 
@@ -15,6 +15,7 @@ def main():
     balance_handler = CommandHandler('balance', balance)
     pay_handler = CommandHandler('pay', pay)
     transfer_handler = CommandHandler('transfer', transfer)
+    distribute_handler = CommandHandler('distribute', distribute)
     history_handler = CommandHandler('history', history)
     session_handler = CommandHandler('session', session)
     addfund_handler = CommandHandler('addfund', addfund)
@@ -31,6 +32,7 @@ def main():
     application.add_handler(setname_handler)
     application.add_handler(pay_handler)
     application.add_handler(transfer_handler)
+    application.add_handler(distribute_handler)
     application.add_handler(balance_handler)
     application.add_handler(history_handler)
     application.add_handler(session_handler)
