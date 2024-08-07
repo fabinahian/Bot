@@ -4,6 +4,7 @@ from bot.database.utils import insert_transaction_and_update_balance, update_tra
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
+from bot.response.response import generate_response
 from datetime import datetime
 import random
 
@@ -17,26 +18,24 @@ async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
         item, bill = getStringAndNumber(context.args)
         bill = round(bill, 2)
         
-        none_item = False
-        if len(item) == 0:
-            none_item = True
-            toss = random.randint(0, 2)
-            if toss == 0:
-                item = "God knows what"
-            elif toss == 1:
-                item = "Something illegal"
-            elif toss == 2:
-                item = "Something embarrassing"
-                
         # print(item, bill)
         user_id = update.message.from_user.id
         user_info = get_user_info(user_id=user_id)
+        if(len(item) == 0):
+            prompt = f"{user_info["username"]} paid {bill} Tk. for unkown item at {str(time)}. initial balance {user_info["balance"]} Tk."
+        else:
+            prompt = f"{user_info["username"]} paid {bill} Tk. for {item} at {str(time)}. initial balance {user_info["balance"]} Tk."
+            
         user_info["balance"] -= bill
+        
+        prompt += f" Their new balance is {user_info["balance"]}"
+        
         insert_transaction_and_update_balance(user_id=user_id, item=item, 
                                               transaction_type="pay", amount=bill)
-        text = f"You paid {bill} Tk. for {item}. Your balance is {user_info["balance"]}"
         
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+        response = generate_response(prompt)
+        
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
     
     except Exception as e:
         logging.error(e)
@@ -48,17 +47,23 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.message.from_user.id
         user_info = get_user_info(user_id=user_id)
         member, amount = getStringAndNumber(context.args)
-        none_item = False
+        
         if len(member) == 0:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't transfer to yourself {name}".format(name = user_info["username"]))
+            prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to themself which is not allowed"
+            response = generate_response(prompt)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         
         member_info = get_user_info(user_name=member)
         if member_info is None:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="I don't know this guy 😕".format(name = user_info["username"]))
+            prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to {member} who we don't know"
+            response = generate_response(prompt)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         if user_info["balance"] - amount < 0:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="You don't have enough balance to transfer, {name} 😕".format(name = user_info["username"]))
+            prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to {member} but their balance is {user_info["balance"]} Tk."
+            response = generate_response(prompt)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         
         
@@ -69,11 +74,11 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = get_user_info(user_id=user_id)
         member_info = get_user_info(user_id=member_info["user_id"])
         
+        prompt = f"{user_info["username"]} transferred {amount} Tk. to {member}. Their new balance is {user_info["balance"]}, the member who recieved money now have a balance of {member_info["balance"]}"
+        response = generate_response(prompt)
+        
         await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                       text="That's what friends are for 🤗. {name1} transferred {amount} Tk. to {name2}'s account. Here's your balance now {name1}: {balance1} Tk.".format(name1 = user_info["username"],
-                                                                                                                                                                                            name2 = member_info["username"],
-                                                                                                                                                                                            amount = amount,
-                                                                                                                                                                                            balance1 = user_info["balance"]))
+                                       text=response)
         
     
     except Exception as e:
@@ -88,7 +93,9 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = get_user_info(user_id=user_id)
         
         if user_info["admin"] == False:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="You can't add fund {}. You're not an admin".format(user_info["username"]))
+            prompt = f"{user_info["username"]} tried to add {amount} Tk. to themself which is not allowed because they are not the admin"
+            response = generate_response(prompt)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         else:
             member_name, amount = getStringAndNumber(context.args)
@@ -104,6 +111,12 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         insert_transaction_and_update_balance(user_id=member_info["user_id"], item="", transaction_type="addfund", amount=amount)
 
+        prompt = f"{member_info["username"]} added {amount} Tk. to their account. Initial balance was {member_info["balance"]}."
+        member_info = get_user_info(user_id=member_info["user_id"])
+        prompt += f" New balance is {member_info["balance"]} Tk."
+        response = generate_response(prompt)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
+        
     except Exception as e:
         logging.error(e)
         await handle_error_command(update, context)

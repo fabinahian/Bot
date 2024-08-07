@@ -1,6 +1,7 @@
 from bot.handlers.common import get_user_info, handle_error_command, get_GMT6_time
 from bot.handlers.common import getStringAndNumber
 from bot.database.utils import get_usernames_by_usergroup, get_last_n_transactions, get_session_summary
+from bot.response.response import generate_response
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
@@ -15,9 +16,10 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_info = get_user_info(user_id=user_id)
     
-    text = f"Hi there {user_info['username']}! Your balance is {user_info['balance']} Tk."
+    prompt = f"{user_info["username"]} asked to see their balance. Their balance is {user_info["balance"]} Tk."
+    response = generate_response(prompt)
     
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
     
 async def allbalance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id

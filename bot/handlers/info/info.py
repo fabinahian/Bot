@@ -4,7 +4,7 @@ from bot.database.utils import create_user, update_username, get_usernames_by_us
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
-
+from bot.response.response import generate_response
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,10 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"User changed their name from {user_info["username"]} to {new_name}")
     update_username(user_id=user_info["user_id"], new_username=new_name)
     
-    text = "I'm so glad you changed your name {}, previous one sucked".format(new_name)
+    prompt = f"{user_info["username"]} changed their name to {new_name}. balance: {user_info["balance"]} Make a joke about this"
+    response = generate_response(prompt)
             
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
     
 
 async def showmembers(update: Update, context: ContextTypes.DEFAULT_TYPE):
