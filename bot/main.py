@@ -1,9 +1,10 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters 
 from bot.handlers.info.info import start, setname, showmembers, help_command
 from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem, distribute
 from bot.handlers.utils.utils import calc
 from bot.handlers.statements.statements import balance, allbalance, history, session
+from bot.handlers.chat.chat import mention
 from bot.config import Config
 
 token = Config.TabaqBillBot_Token
@@ -29,6 +30,8 @@ def start_bot():
     calc_handler = CommandHandler('calc', calc)
     help_handler = CommandHandler('help', help_command)
     
+    mention_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, mention)
+    
     application.add_handler(start_handler)
     application.add_handler(setname_handler)
     application.add_handler(pay_handler)
@@ -46,5 +49,7 @@ def start_bot():
     # application.add_handler(whoami_handler)
     application.add_handler(calc_handler)
     application.add_handler(help_handler)
+    
+    application.add_handler(mention_handler)
     
     application.run_polling()
