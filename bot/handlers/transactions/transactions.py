@@ -167,8 +167,14 @@ async def distribute(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if(len(context.args) > 2):
             usernames = context.args[2:]
-            amount_distributed = distribute_payment_between_users(usernames=usernames, total_amount=total_amount, item=item)
-            text=f"{amount_distributed} Tk. ditributed between {str(usernames)}"
+            users, amount_distributed = distribute_payment_between_users(usernames=usernames, total_amount=total_amount, item=item)
+            if len(users) > 1:
+                comma_separated_string = ", ".join(users[:-1]) + ", and " + users[-1]
+            elif users:
+                comma_separated_string = users[0]
+            else:
+                comma_separated_string = ""
+            text=f"{amount_distributed} Tk. ditributed between {comma_separated_string}"
         else:
             amount_distributed = distribute_payment(usergroup=user_info["usergroup"], total_amount=total_amount, item=item)
             text=f"{amount_distributed} Tk. ditributed between all users of the group {user_info["usergroup"]}"

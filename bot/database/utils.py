@@ -207,19 +207,19 @@ def distribute_payment(usergroup, total_amount, item, transaction_type="pay"):
 
 def distribute_payment_between_users(usernames, total_amount, item, transaction_type="pay"):
     session = get_session()
+    retrieved_usernames = []
     try:
-        amount = round(total_amount/len(usernames), 2)
+        amount = round(total_amount / len(usernames), 2)
         for user in usernames:
             # Get users with usernames matching the user
             users = session.query(User).filter(User.username.like(f"%{user}%")).all()
             if not users:
-                print(f"No users found with the username user '{user}'")
+                print(f"No users found with the username '{user}'")
                 continue
 
             for user in users:
-                # if user.balance < amount:
-                #     print(f"User {user.username} does not have enough balance. Skipping.")
-                #     continue
+                # Add the username to the list
+                retrieved_usernames.append(user.username)
 
                 # Reduce user balance
                 user.balance -= amount
@@ -242,7 +242,9 @@ def distribute_payment_between_users(usernames, total_amount, item, transaction_
         raise e
     finally:
         session.close()
-    return amount
+
+    return retrieved_usernames, amount
+
 
 # Add this method to the User model for convenience
 def as_dict(self):
