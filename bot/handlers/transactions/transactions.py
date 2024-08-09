@@ -104,6 +104,7 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         else:
             member_name, amount = getStringAndNumber(context.args)
+            amount = round(amount, 2)
             logger.debug(member_name)
             if len(member_name) == 0:
                 member_name = user_info["username"]
@@ -129,7 +130,8 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def editamount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        tx_id, bill = context.args[0], float(context.args[1])                
+        tx_id, bill = context.args[0], float(context.args[1])   
+        bill = round(bill, 2)
         # print(tx_id, bill)
         user_id = update.message.from_user.id
         user_info = get_user_info(user_id=user_id)
@@ -179,10 +181,10 @@ async def distribute(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 comma_separated_string = users[0]
             else:
                 comma_separated_string = ""
-            text=f"{amount_distributed} Tk. ditributed between {comma_separated_string}"
+            text=f"{amount_distributed} Tk. payment ditributed between {comma_separated_string}"
         else:
             amount_distributed = distribute_payment(usergroup=user_info["usergroup"], total_amount=total_amount, item=item)
-            text=f"{amount_distributed} Tk. ditributed between all users of the group {user_info["usergroup"]}"
+            text=f"{amount_distributed} Tk. payment ditributed between all users of the group {user_info["usergroup"]}"
             
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         

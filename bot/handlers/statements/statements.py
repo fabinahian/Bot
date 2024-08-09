@@ -136,10 +136,10 @@ async def session(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text += f"- {user_info['username']} sent {t['amount']} Tk. to {t['item']} at {t['timestamp']}\n"
         
         text += "\nIn this session:"
-        text += "\nTotal added: {amount} Tk.".format(amount = summary['addfund'])
-        text += "\nTotal paid: {amount} Tk.".format(amount = summary['pay'])
-        text += "\nTotal transferred: {amount} Tk.".format(amount = summary['debit'])
-        text += "\nBalance: {amount} Tk.".format(amount = summary['pay'] - summary['addfund'])
+        text += "\nTotal added: {amount} Tk.".format(amount = round(summary['addfund'], 2))
+        text += "\nTotal paid: {amount} Tk.".format(amount = round(summary['pay'], 2))
+        text += "\nTotal transferred: {amount} Tk.".format(amount = round(summary['debit'], 2))
+        text += "\nBalance: {amount} Tk.".format(amount = round(summary['pay'] - summary['addfund'], 2))
 
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
     

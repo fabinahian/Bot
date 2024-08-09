@@ -82,7 +82,7 @@ def insert_transaction_and_update_balance(user_id, item, transaction_type, amoun
         # Update the user's balance
         user = session.query(User).filter_by(user_id=user_id).first()
         if user:
-            user.balance += amount
+            user.balance += round(amount, 2)
         else:
             raise ValueError("User not found")
 
@@ -116,7 +116,7 @@ def update_transaction_and_balance(tx_id, new_amount = None, item = None):
         # Update the user's balance
         user = session.query(User).filter_by(user_id=transaction.user_id).first()
         if user:
-            user.balance += amount_difference
+            user.balance += round(amount_difference, 2)
         else:
             raise ValueError("User not found")
 
