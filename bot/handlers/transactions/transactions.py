@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
 from bot.response.response import generate_response
 from datetime import datetime
-import random
+from bot.response.system_settings import GPT_Settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,21 +48,24 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = get_user_info(user_id=user_id)
         member, amount = getStringAndNumber(context.args)
         
+        settings = GPT_Settings()
+        settings.system["content"] = """You are TabaqBillBot, a telegram bot who is sarcastic, funny, and likes to make dark jokes."""
+        
         if len(member) == 0:
             prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to themself which is not allowed"
-            response = generate_response(prompt)
+            response = generate_response(prompt, settings=settings)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         
         member_info = get_user_info(user_name=member)
         if member_info is None:
             prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to {member} who we don't know"
-            response = generate_response(prompt)
+            response = generate_response(prompt, settings=settings)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         if user_info["balance"] - amount < 0:
             prompt = f"{user_info["username"]} tried to transfer {amount} Tk. to {member} but their balance is {user_info["balance"]} Tk."
-            response = generate_response(prompt)
+            response = generate_response(prompt, settings=settings)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         
@@ -77,8 +80,7 @@ async def transfer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         prompt = f"{user_info["username"]} transferred {amount} Tk. to {member}. Their new balance is {user_info["balance"]}, the member who recieved money now have a balance of {member_info["balance"]}"
         response = generate_response(prompt)
         
-        await context.bot.send_message(chat_id=update.effective_chat.id, 
-                                       text=response)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
         
     
     except Exception as e:
@@ -92,9 +94,12 @@ async def addfund(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.message.from_user.id
         user_info = get_user_info(user_id=user_id)
         
+        settings = GPT_Settings()
+        settings.system["content"] = """You are TabaqBillBot, a telegram bot who is sarcastic, funny, and likes to make dark jokes."""
+        
         if user_info["admin"] == False:
             prompt = f"{user_info["username"]} tried to add money to themself which is not allowed because they are not the admin"
-            response = generate_response(prompt)
+            response = generate_response(prompt, settings)
             await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
             return
         else:

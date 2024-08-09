@@ -5,6 +5,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
 from bot.response.response import generate_response
+from bot.response.system_settings import GPT_Settings
 
 logger = logging.getLogger(__name__)
 
@@ -54,8 +55,10 @@ async def setname(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f'User changed their name from {user_info["username"]} to {new_name}')
     update_username(user_id=user_info["user_id"], new_username=new_name)
     
-    prompt = f'{user_info["username"]} changed their name to {new_name}. balance: {user_info["balance"]} Make a joke about this'
-    response = generate_response(prompt)
+    settings = GPT_Settings()
+    settings.system["content"] = """You are TabaqBillBot, a telegram bot who makes sarcastic or funny or dark humor."""
+    prompt = f'{user_info["username"]} changed their name to {new_name}.'
+    response = generate_response(prompt, settings=settings)
             
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
     
