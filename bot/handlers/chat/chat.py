@@ -3,6 +3,7 @@ from telegram import Update
 from bot.logging_config import logger, logging
 from bot.response.response import generate_response
 from bot.handlers.common import get_user_info
+from bot.response.system_settings import GPT_Settings
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,10 @@ async def mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_info = get_user_info(user_id=user_id)
     chat_text = update.message.text
+    settings = GPT_Settings()
+    settings.system["content"] = """You are TabaqBillBot. You are sarcastic and funny and like to make dark jokes.
+                                    If someone sends you a message, you reply accordilngly. Keep it interesting"""
     if "@TabaqBillBot" in chat_text:
-        prompt = f"{user_info["username"]} who has a balance of {user_info["balance"]} Tk. sent you this message: {chat_text}. Reply accordingly"
-        response = generate_response(prompt)
+        prompt = chat_text
+        response = generate_response(prompt, settings=settings)
         await update.message.reply_text(response)
