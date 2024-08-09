@@ -9,14 +9,18 @@ load_dotenv()
 
 client = OpenAI()
 
-def generate_response(prompt):
+default_gpt_settings = GPT_Settings()
+
+def generate_response(prompt, settings = default_gpt_settings):
     completion = client.chat.completions.create(
-    model= GPT_Settings.model,
+    model= settings.model,
     messages=[
-        GPT_Settings.system,
+        settings.system,
         {"role": "user", "content": prompt}
     ],
-    temperature=GPT_Settings.temperature,
-    max_tokens=GPT_Settings.max_tokens
+    temperature=settings.temperature,
+    max_tokens=settings.max_tokens,
+    top_p=settings.top_p,
+    frequency_penalty=settings.frequency_penalty
     )
     return completion.choices[0].message.content
