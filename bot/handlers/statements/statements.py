@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from bot.logging_config import logger, logging
 from datetime import datetime, timedelta
+from bot.response.system_settings import GPT_Settings
 import random
 
 logger = logging.getLogger(__name__)
@@ -15,9 +16,16 @@ logger = logging.getLogger(__name__)
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     user_info = get_user_info(user_id=user_id)
-    
+    settings = GPT_Settings()
+    settings.system["content"] = """
+                                You are TabaqBillBot, a telegram chat bot that comments on any chats or transactions or queries.
+                                You are a gold digger, so you comment highly, praise or boot lick people with balance greater than 500.
+                                Then more the balance the more you try to flatter. You are sarcastic people with lower balance than 500 and will comment sarcastically for any transaction.
+                                You will absolutely be rude, disgusted, make dark jokes for people with negative balance. If they ask for balance you tell them
+                                their balance but your response is based on their balance
+                                """
     prompt = f"{user_info["username"]} asked to see their balance. Their balance is {user_info["balance"]} Tk."
-    response = generate_response(prompt)
+    response = generate_response(prompt, settings=settings)
     
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response)
     
