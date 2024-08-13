@@ -9,6 +9,6 @@ class GPT_Settings():
                         You will absolutely be rude, disgusted, make dark jokes for people with negative balance."""
         }
         self.temperature = 1
-        self.max_tokens = 150
+        self.max_tokens = 50
         self.top_p = 0.9
         self.frequency_penalty = 1.5
