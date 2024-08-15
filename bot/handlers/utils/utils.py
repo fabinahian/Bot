@@ -47,12 +47,15 @@ def parse_input(input_str: str):
     if messageType is None:
         messageType = 3
         
-    return {
+    result =  {
         "msisdns": msisdns,
         "message": message,
         "masking": masking,
         "messageType": messageType
     }
+    
+    logger.info(f"Parsed data: {result}")
+    return result
     
 def generate_token(channel: str) -> str:
     # Get the current date and format it as ddmmyyyy
@@ -92,7 +95,7 @@ def send_sms(msisdn: list, message: str, masking: int, messageType: int, channel
 
     # Make the POST request
     response = requests.post(url, json=payload, headers=headers)
-
+    logger.info(f"response from SMS API: {response}")
     # Return the response as a dictionary
     return response.json()
 
@@ -119,11 +122,13 @@ async def sms(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_info = get_user_info(user_id=user_id)
     
     if user_info["user_id"] != 6250006519:
+        logger.error(f"{user_info["username"]} tried to access, they are not authorized")
         text = "You are not authorized"
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         return
     
     if len(context.args) < 2:
+        logger.error(f"invalid command")
         text = "This is not a valid command"
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
         return
