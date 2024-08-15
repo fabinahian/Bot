@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters 
 from bot.handlers.info.info import start, setname, showmembers, help_command
 from bot.handlers.transactions.transactions import pay, transfer, addfund, editamount, edititem, distribute
-from bot.handlers.utils.utils import calc
+from bot.handlers.utils.utils import calc, sms
 from bot.handlers.statements.statements import balance, allbalance, history, session
 from bot.handlers.chat.chat import mention
 from bot.config import Config
@@ -28,6 +28,7 @@ def start_bot():
     # tabaqmenu_handler = CommandHandler('tabaqmenu', tabaqmenu)
     # whoami_handler = CommandHandler('whoami', whoami)
     calc_handler = CommandHandler('calc', calc)
+    sms_handler = CommandHandler('sms', sms)
     help_handler = CommandHandler('help', help_command)
     
     mention_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, mention)
@@ -48,6 +49,7 @@ def start_bot():
     # application.add_handler(tabaqmenu_handler)
     # application.add_handler(whoami_handler)
     application.add_handler(calc_handler)
+    application.add_handler(sms_handler)
     application.add_handler(help_handler)
     
     application.add_handler(mention_handler)
