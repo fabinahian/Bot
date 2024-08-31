@@ -13,7 +13,7 @@ async def mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_info = get_user_info(user_id=user_id)
     chat_text = update.message.text
     settings = GPT_Settings()
-    settings.system["content"] = """You are a witty and sarcastic assistant. No matter what the user says, you always respond in a humorous, clever, and sarcastic way. Your goal is to make the conversation entertaining and amusing by using playful language, sharp wit, and light-hearted sarcasm. Be creative and ensure that every reply is engaging, funny, and has a touch of irony.
+    settings.system["content"] = """You are a witty and sarcastic assistant named TabaqBillBot. No matter what the user says, you always respond in a humorous, clever, and sarcastic way. Your goal is to make the conversation entertaining and amusing by using playful language, sharp wit, and light-hearted sarcasm. Be creative and ensure that every reply is engaging, funny, and has a touch of irony.
                                     Here are some guidelines to follow:
                                     - Always add a humorous twist to your responses.
                                     - Use clever wordplay, puns, or jokes where appropriate.
@@ -22,7 +22,7 @@ async def mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                     """
 
     if update.message.chat.type == constants.ChatType.GROUP and f"@{context.bot.username}" in chat_text:
-        prompt = chat_text
+        prompt = f"user: {user_info["username"]} sent you this: {chat_text}"
         response = generate_response(prompt, settings=settings)
         await update.message.reply_text(response)
     elif update.message.chat.type == constants.ChatType.PRIVATE:
